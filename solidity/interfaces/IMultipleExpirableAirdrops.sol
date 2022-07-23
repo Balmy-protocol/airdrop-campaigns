@@ -37,7 +37,7 @@ interface IMultipleExpirableAirdrops {
 
   /// @notice Emitted when lifespan of tranches is set
   /// @param trancheLifespan The lifespan of the next created tranches
-  event LifespanSet(uint32 trancheLifespan);
+  event TranchesLifespanSet(uint32 trancheLifespan);
 
   /// @notice Emitted when a claim tranche is created
   /// @param trancheMerkleRoot Merkle root that will be used to validate claims
@@ -65,7 +65,7 @@ interface IMultipleExpirableAirdrops {
   /// @dev This value cannot be modified
   /// @param trancheMerkleRoot Tranche's merkle root
   /// @return Tranche's airdropped amount and deadline timestamp
-  function tranche(bytes32 trancheMerkleRoot) external view returns (Tranche memory);
+  // function tranches(bytes32 trancheMerkleRoot) external view returns (Tranche memory);
 
   /// @notice Returns the duration in which users can claim once a tranche is created
   /// @dev This value cannot be modified
