@@ -12,8 +12,6 @@ import { takeSnapshot, SnapshotRestorer } from '@nomicfoundation/hardhat-network
 chai.use(smock.matchers);
 
 describe('MultipleExpirableAirdrop', () => {
-  const LIFESPAN = 9600;
-
   let governor: SignerWithAddress;
   let user: SignerWithAddress;
   let claimableToken: FakeContract<IERC20>;
@@ -27,7 +25,7 @@ describe('MultipleExpirableAirdrop', () => {
     multipleExpirablesAirdropFactory = (await ethers.getContractFactory(
       'solidity/contracts/MultipleExpirableAirdrops.sol:MultipleExpirableAirdrops'
     )) as MultipleExpirableAirdrops__factory;
-    multipleExpirablesAirdrop = await multipleExpirablesAirdropFactory.deploy(governor.address, claimableToken.address, LIFESPAN);
+    multipleExpirablesAirdrop = await multipleExpirablesAirdropFactory.deploy(governor.address, claimableToken.address);
     snapshot = await takeSnapshot();
   });
 
@@ -40,17 +38,8 @@ describe('MultipleExpirableAirdrop', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithCustomError({
           contract: multipleExpirablesAirdropFactory,
-          args: [generateRandomAddress(), constants.AddressZero, 1],
+          args: [generateRandomAddress(), constants.AddressZero],
           customErrorName: 'ZeroAddress',
-        });
-      });
-    });
-    when('tranche lifespan is zero', () => {
-      then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithCustomError({
-          contract: multipleExpirablesAirdropFactory,
-          args: [generateRandomAddress(), generateRandomAddress(), 0],
-          customErrorName: 'InvalidLifespan',
         });
       });
     });
@@ -60,9 +49,6 @@ describe('MultipleExpirableAirdrop', () => {
       });
       then('claimable token is set correctly', async () => {
         expect(await multipleExpirablesAirdrop.claimableToken()).to.be.equal(claimableToken.address);
-      });
-      then('tranche lifespan is set correctly', async () => {
-        expect(await multipleExpirablesAirdrop.tranchesLifespan()).to.be.equal(LIFESPAN);
       });
     });
   });

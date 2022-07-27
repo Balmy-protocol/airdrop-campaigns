@@ -12,13 +12,12 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
  */
 interface IMultipleExpirableAirdrops {
   /// @notice Tranche information
-  struct Tranche {
-    uint224 amount;
+  /// @dev Claimable and claimed amounts will be limited to 2**112 so this struct is only 32 bytes.
+  struct TrancheInformation {
+    uint112 claimable;
+    uint112 claimed;
     uint32 deadline;
   }
-
-  /// @notice Thown when lifespan trying to be set is invalid.
-  error InvalidLifespan();
 
   /// @notice Thrown when a tranche does not exist or merkle root is invalid.
   error InvalidMerkleRoot();
@@ -32,29 +31,33 @@ interface IMultipleExpirableAirdrops {
   /// @notice Thrown when validating an airdrop claim with the proof is invalid.
   error InvalidProof();
 
+  /// @notice Thrown when user tries to claim airdrop from expired tranche
+  error ExpiredTranche();
+
+  /// @notice Thrown when user tries to claim something it already claimed
+  error AlreadyClaimed();
+
   /// @notice Thrown when governor tries to withdraw unclaimed tokens from an active tranche.
   error TrancheStillActive();
-
-  /// @notice Emitted when lifespan of tranches is set
-  /// @param trancheLifespan The lifespan of the next created tranches
-  event TranchesLifespanSet(uint32 trancheLifespan);
 
   /// @notice Emitted when a claim tranche is created
   /// @param trancheMerkleRoot Merkle root that will be used to validate claims
   /// @param claimable Amount of claimable tokens
-  event TrancheCreated(bytes32 trancheMerkleRoot, uint224 claimable);
+  /// @param deadline Timestamp until when the tranche is claimable
+  event TrancheCreated(bytes32 trancheMerkleRoot, uint112 claimable, uint32 deadline);
 
-  /// @notice Emitted when a balance from a tranche is withdrawn
+  /// @notice Emitted when a balance a tranche gets closed
   /// @param trancheMerkleRoot Merkle root of the tranche
+  /// @param recipient Address that will receive tranche unclaimed tokens
   /// @param unclaimed Amount of unclaimed tokens of the tranche
-  event TrancheWithdrawn(bytes32 trancheMerkleRoot, uint224 unclaimed);
+  event TrancheClosed(bytes32 trancheMerkleRoot, address recipient, uint112 unclaimed);
 
   /// @notice Emitted when a user claims a tranche.
   /// @param trancheMerkleRoot Merkle root of the tranche
-  /// @param claimer Address of the person claiming the airdrop
+  /// @param claimee Address of the person claiming the airdrop
   /// @param amount Amount of tokens being claimed
   /// @param recipient Address that will receive the tokens being claimed
-  event TrancheClaimed(bytes32 trancheMerkleRoot, address claimer, uint224 amount, address recipient);
+  event TrancheClaimed(bytes32 trancheMerkleRoot, address claimee, uint112 amount, address recipient);
 
   /// @notice Returns the airdropped token's address
   /// @dev This value cannot be modified
@@ -64,41 +67,63 @@ interface IMultipleExpirableAirdrops {
   /// @notice Returns the tranche information
   /// @dev This value cannot be modified
   /// @param trancheMerkleRoot Tranche's merkle root
-  /// @return Tranche's airdropped amount and deadline timestamp
-  // function tranches(bytes32 trancheMerkleRoot) external view returns (Tranche memory);
+  /// @return Tranche's information
+  // function tranches(bytes32 trancheMerkleRoot) external view returns (TrancheInformation memory);
 
-  /// @notice Returns the duration in which users can claim once a tranche is created
+  /// @notice Returns status of claimed tranche by tranche and user
   /// @dev This value cannot be modified
-  /// @return Life's duration of a tranche
-  function tranchesLifespan() external view returns (uint32);
+  /// @param trancheAndClaimee Unique identifier for tranche and claimee address
+  /// @return True if already claimed, false otherwise
+  function claimedTranches(bytes32 trancheAndClaimee) external view returns (bool);
 
-  /// @notice Sets total life duration of a tranche. This is the amount of time users have to claim until a tranche expires.
-  /// @dev Will revert with `InvalidLifespan` if lifespan is not valid
-  /// @param tranchesLifespan Total life duration of a tranche in seconds
-  function setTranchesLifespan(uint32 tranchesLifespan) external;
-
-  /// @notice Creates a tranche setting the deadline of it as now() + tranche lifespan, while also setting
-  /// the claimable amount of tokens for it.
+  /// @notice Creates a tranche setting the deadline, while also getting the claimable amount of tokens for it.
   /// @dev Will revert:
   /// With InvalidMerkleRoot if trancheMerkleRoot is zero bytes.
   /// With InvalidAmount if climable is zero.
+  /// With ExpiredTranche if deadline has already passed.
   /// @param trancheMerkleRoot Tranche's merkle root
   /// @param claimable Total amount of claimable tokens for this tranche
-  function createTranche(bytes32 trancheMerkleRoot, uint224 claimable) external;
+  /// @param deadline Timestamp in which the tranche will become unclaimable for users
+  function createTranche(
+    bytes32 trancheMerkleRoot,
+    uint112 claimable,
+    uint32 deadline
+  ) external;
 
-  /// @notice Claims an airdrop for the corresponding tranche.
+  /// @notice Claims an airdrop for the corresponding tranche and sends it to the owner of the airdrop
   /// @dev Will revert:
   /// With InvalidMerkleRoot if trancheMerkleRoot is zero bytes.
-  /// With InvalidAmount if climable is zero.
-  /// With ZeroAddress if recipient is zero.
+  /// With InvalidAmount if amount is zero.
+  /// With ZeroAddress if recipient or claimee is zero.
   /// With InvalidProof if merkeProof is invalid.
+  /// With ExpiredTranche if tranche already expired.
+  /// With AlreadyClaimed if tranche and proof already used.
+  /// @param trancheMerkleRoot Tranche's merkle root
+  /// @param claimee Owner address of the airdrop
+  /// @param amount Total amount of claimable tokens by the msg.sender
+  /// @param merkleProof Merkle proof to check airdrop claim validation
+  function claimAndSendToClaimee(
+    bytes32 trancheMerkleRoot,
+    address claimee,
+    uint112 amount,
+    bytes32[] calldata merkleProof
+  ) external;
+
+  /// @notice Claims an airdrop for the corresponding tranche and sends it to the owner of the airdrop
+  /// @dev Will revert:
+  /// With InvalidMerkleRoot if trancheMerkleRoot is zero bytes.
+  /// With InvalidAmount if amount is zero.
+  /// With ZeroAddress if recipient or claimee is zero.
+  /// With InvalidProof if merkeProof is invalid.
+  /// With ExpiredTranche if tranche already expired.
+  /// With AlreadyClaimed if tranche and proof already used.
   /// @param trancheMerkleRoot Tranche's merkle root
   /// @param amount Total amount of claimable tokens by the msg.sender
-  /// @param recipient Address of receiver of the airdropped tokens
+  /// @param recipient Receiver address of the airdropped tokens
   /// @param merkleProof Merkle proof to check airdrop claim validation
-  function claim(
+  function claimAndTransfer(
     bytes32 trancheMerkleRoot,
-    uint224 amount,
+    uint112 amount,
     address recipient,
     bytes32[] calldata merkleProof
   ) external;
@@ -108,6 +133,7 @@ interface IMultipleExpirableAirdrops {
   /// With InvalidMerkleRoot if trancheMerkleRoot is zero bytes.
   /// With TrancheStillAcrive if the tranche is still active (not past its deadline).
   /// @param trancheMerkleRoot Tranche's merkle root
+  /// @param recipient Recipient of unclaimed tranche tokens.
   /// @return unclaimed Amount of unclaimed airdropped tokens of tranche.
-  function withdrawUnclaimedFromExpiredTranche(bytes32 trancheMerkleRoot) external returns (uint224 unclaimed);
+  function closeTranche(bytes32 trancheMerkleRoot, address recipient) external returns (uint112 unclaimed);
 }
