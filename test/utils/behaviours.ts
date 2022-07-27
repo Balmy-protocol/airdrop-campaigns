@@ -26,6 +26,32 @@ export const checkTxRevertedWithMessage = async ({
   }
 };
 
+export const checkTxRevertedWithCustomError = async ({
+  tx,
+  contract,
+  customErrorName,
+}: {
+  tx: Promise<TransactionResponse>;
+  contract: { interface: any };
+  customErrorName: string;
+}): Promise<void> => {
+  await expect(tx).to.be.revertedWithCustomError(contract, customErrorName);
+};
+
+export const deployShouldRevertWithCustomError = async ({
+  contract,
+  args,
+  customErrorName,
+}: {
+  contract: ContractFactory;
+  args: any[];
+  customErrorName: string;
+}): Promise<void> => {
+  const deployContractTx = await contract.getDeployTransaction(...args);
+  const tx = contract.signer.sendTransaction(deployContractTx);
+  await checkTxRevertedWithCustomError({ tx, contract, customErrorName });
+};
+
 export const checkTxRevertedWithZeroAddress = async (tx: Promise<TransactionResponse>): Promise<void> => {
   await checkTxRevertedWithMessage({
     tx,
