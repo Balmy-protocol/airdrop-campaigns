@@ -22,7 +22,16 @@ contract MultipleExpirableAirdrops is IMultipleExpirableAirdrops, Governable {
     bytes32 _trancheMerkleRoot,
     uint112 _claimable,
     uint32 _deadline
-  ) external {}
+  ) external onlyGovernor {
+    if (_trancheMerkleRoot == bytes32(0)) revert InvalidMerkleRoot();
+    if (_claimable == 0) revert InvalidAmount();
+    if (_deadline <= block.timestamp) revert ExpiredTranche();
+
+    claimableToken.safeTransferFrom(msg.sender, address(this), _claimable);
+    tranches[_trancheMerkleRoot] = TrancheInformation({claimable: _claimable, claimed: 0, deadline: _deadline});
+
+    emit TrancheCreated(_trancheMerkleRoot, _claimable, _deadline);
+  }
 
   function claimAndSendToClaimee(
     bytes32 _trancheMerkleRoot,
