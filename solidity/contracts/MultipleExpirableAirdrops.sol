@@ -47,5 +47,14 @@ contract MultipleExpirableAirdrops is IMultipleExpirableAirdrops, Governable {
     bytes32[] calldata _merkleProof
   ) external {}
 
-  function closeTranche(bytes32 _trancheMerkleRoot, address _recipient) external returns (uint112 _unclaimed) {}
+  function closeTranche(bytes32 _trancheMerkleRoot, address _recipient) external onlyGovernor returns (uint112 _unclaimed) {
+    if (_trancheMerkleRoot == bytes32(0)) revert InvalidMerkleRoot();
+    if (_recipient == address(0)) revert ZeroAddress();
+    TrancheInformation memory _tranche = tranches[_trancheMerkleRoot];
+    if (block.timestamp <= _tranche.deadline) revert TrancheStillActive();
+    _unclaimed = _tranche.claimable - _tranche.claimed;
+    tranches[_trancheMerkleRoot].claimed = _tranche.claimable;
+    claimableToken.safeTransfer(_recipient, _unclaimed);
+    emit TrancheClosed(_trancheMerkleRoot, _recipient, _unclaimed);
+  }
 }

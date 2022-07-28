@@ -8,6 +8,7 @@ import { getStatic } from 'ethers/lib/utils';
 import { wallet } from '.';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { given, when, then } from './bdd';
+import { MockContract } from '@defi-wonderland/smock';
 
 chai.use(chaiAsPromised);
 
@@ -215,7 +216,7 @@ export const shouldBeExecutableOnlyByGovernor = ({
   params,
   governor,
 }: {
-  contract: () => Contract;
+  contract: () => Contract | MockContract;
   funcAndSignature: string;
   params?: any[] | (() => any[]);
   governor: () => SignerWithAddress | Wallet;
