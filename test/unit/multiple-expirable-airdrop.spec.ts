@@ -10,8 +10,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { takeSnapshot, SnapshotRestorer, time } from '@nomicfoundation/hardhat-network-helpers';
 import { TransactionResponse } from '@ethersproject/providers';
-import { createMerkleTree, getLeaf } from '@utils/merkle-proof';
-import MerkleTree from 'merkletreejs';
 import { getAddress } from 'ethers/lib/utils';
 
 chai.use(smock.matchers);
@@ -108,6 +106,44 @@ describe('MultipleExpirableAirdrop', () => {
       funcAndSignature: 'createTranche(bytes32,uint112,uint32)',
       params: [constants.HashZero, 0, 0],
       governor: () => governor,
+    });
+  });
+
+  describe('claimAndSendToClaimee', () => {
+    const ROOT = randomHex(32);
+    const CLAIMEE = getAddress(randomHex(20));
+    const CLAIMABLE_AMOUNT = utils.parseEther('12.34');
+    const PROOF = [randomHex(32), randomHex(32)];
+    given(async () => {
+      await multipleExpirablesAirdrop.claimAndSendToClaimee(ROOT, CLAIMEE, CLAIMABLE_AMOUNT, PROOF);
+    });
+    it('calls internal claim with claimee and recipient as same address', async () => {
+      const internalClaimCall = await multipleExpirablesAirdrop.internalClaimCall();
+      const internalClaimCallProof = await multipleExpirablesAirdrop.getInternalClaimCallProof();
+      expect(internalClaimCall._trancheMerkleRoot).to.be.equal(ROOT);
+      expect(internalClaimCall._claimee).to.be.equal(CLAIMEE);
+      expect(internalClaimCall._amount).to.be.equal(CLAIMABLE_AMOUNT);
+      expect(internalClaimCall._recipient).to.be.equal(CLAIMEE);
+      expect(internalClaimCallProof).to.be.eql(PROOF);
+    });
+  });
+
+  describe('claimAndTransfer', () => {
+    const ROOT = randomHex(32);
+    const RECIPIENT = getAddress(randomHex(20));
+    const CLAIMABLE_AMOUNT = utils.parseEther('12.34');
+    const PROOF = [randomHex(32), randomHex(32)];
+    given(async () => {
+      await multipleExpirablesAirdrop.connect(user).claimAndTransfer(ROOT, CLAIMABLE_AMOUNT, RECIPIENT, PROOF);
+    });
+    it('calls internal claim with claimee as message sender', async () => {
+      const internalClaimCall = await multipleExpirablesAirdrop.internalClaimCall();
+      const internalClaimCallProof = await multipleExpirablesAirdrop.getInternalClaimCallProof();
+      expect(internalClaimCall._trancheMerkleRoot).to.be.equal(ROOT);
+      expect(internalClaimCall._claimee).to.be.equal(user.address);
+      expect(internalClaimCall._amount).to.be.equal(CLAIMABLE_AMOUNT);
+      expect(internalClaimCall._recipient).to.be.equal(RECIPIENT);
+      expect(internalClaimCallProof).to.be.eql(PROOF);
     });
   });
 

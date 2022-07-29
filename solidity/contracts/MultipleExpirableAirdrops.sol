@@ -6,6 +6,8 @@ import '../interfaces/IMultipleExpirableAirdrops.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
+import 'hardhat/console.sol';
+
 contract MultipleExpirableAirdrops is IMultipleExpirableAirdrops, Governable {
   using SafeERC20 for IERC20;
 
@@ -38,14 +40,47 @@ contract MultipleExpirableAirdrops is IMultipleExpirableAirdrops, Governable {
     address _claimee,
     uint112 _amount,
     bytes32[] calldata _merkleProof
-  ) external {}
+  ) external {
+    _claim(_trancheMerkleRoot, _claimee, _amount, _claimee, _merkleProof);
+  }
 
   function claimAndTransfer(
     bytes32 _trancheMerkleRoot,
     uint112 _amount,
     address _recipient,
     bytes32[] calldata _merkleProof
-  ) external {}
+  ) external {
+    _claim(_trancheMerkleRoot, msg.sender, _amount, _recipient, _merkleProof);
+  }
+
+  function _claim(
+    bytes32 _trancheMerkleRoot,
+    address _claimee,
+    uint112 _amount,
+    address _recipient,
+    bytes32[] calldata _merkleProof
+  ) internal virtual {
+    if (_trancheMerkleRoot == bytes32(0)) revert InvalidMerkleRoot();
+    if (_amount == 0) revert InvalidAmount();
+    if (_claimee == address(0) || _recipient == address(0)) revert ZeroAddress();
+    if (_merkleProof.length == 0) revert InvalidProof();
+
+    TrancheInformation memory _tranche = tranches[_trancheMerkleRoot];
+    if (_tranche.deadline <= block.timestamp) revert ExpiredTranche();
+
+    bytes32 _leaf = keccak256(abi.encodePacked(_claimee, _amount));
+    bool _isValidLeaf = MerkleProof.verify(_merkleProof, _trancheMerkleRoot, _leaf);
+    if (!_isValidLeaf) revert InvalidProof();
+
+    bytes32 _claimId = keccak256(abi.encodePacked(_trancheMerkleRoot, msg.sender));
+    if (claimedTranches[_claimId]) revert AlreadyClaimed();
+    claimedTranches[_claimId] = true;
+
+    tranches[_trancheMerkleRoot].claimed = _tranche.claimed + _amount;
+    claimableToken.safeTransfer(_recipient, _amount);
+
+    emit TrancheClaimed(_trancheMerkleRoot, _claimee, _amount, _recipient);
+  }
 
   function closeTranche(bytes32 _trancheMerkleRoot, address _recipient) external onlyGovernor returns (uint112 _unclaimed) {
     if (_trancheMerkleRoot == bytes32(0)) revert InvalidMerkleRoot();
