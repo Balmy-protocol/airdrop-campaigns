@@ -27,6 +27,16 @@ contract MultipleExpirableAirdropsMock is MultipleExpirableAirdrops {
     }
   }
 
+  function claim(
+    bytes32 _trancheMerkleRoot,
+    address _claimee,
+    uint112 _amount,
+    address _recipient,
+    bytes32[] calldata _merkleProof
+  ) external {
+    super._claim(_trancheMerkleRoot, _claimee, _amount, _recipient, _merkleProof);
+  }
+
   function _claim(
     bytes32 _trancheMerkleRoot,
     address _claimee,

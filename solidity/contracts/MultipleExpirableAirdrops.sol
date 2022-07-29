@@ -72,7 +72,7 @@ contract MultipleExpirableAirdrops is IMultipleExpirableAirdrops, Governable {
     bool _isValidLeaf = MerkleProof.verify(_merkleProof, _trancheMerkleRoot, _leaf);
     if (!_isValidLeaf) revert InvalidProof();
 
-    bytes32 _claimId = keccak256(abi.encodePacked(_trancheMerkleRoot, msg.sender));
+    bytes32 _claimId = keccak256(abi.encodePacked(_trancheMerkleRoot, _claimee));
     if (claimedTranches[_claimId]) revert AlreadyClaimed();
     claimedTranches[_claimId] = true;
 

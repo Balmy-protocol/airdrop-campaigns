@@ -11,6 +11,8 @@ import { smock, FakeContract } from '@defi-wonderland/smock';
 import { takeSnapshot, SnapshotRestorer, time } from '@nomicfoundation/hardhat-network-helpers';
 import { TransactionResponse } from '@ethersproject/providers';
 import { getAddress } from 'ethers/lib/utils';
+import { getLeaf, createMerkleTree } from '@utils/merkle-proof';
+import MerkleTree from 'merkletreejs';
 
 chai.use(smock.matchers);
 
@@ -147,6 +149,108 @@ describe('MultipleExpirableAirdrop', () => {
     });
   });
 
+  describe('_claim', () => {
+    let proof: string[];
+    let root: string;
+    const CLAIMEE_1 = getAddress(randomHex(20));
+    const CLAIMEE_2 = getAddress(randomHex(20));
+    const RECIPIENT = getAddress(randomHex(20));
+    const CLAIMABLE_AMOUNT_1 = utils.parseEther('12.34');
+    const CLAIMABLE_AMOUNT_2 = utils.parseEther('420.69');
+    const DEADLINE = moment().add('1', 'week').unix();
+    given(async () => {
+      let tree: MerkleTree;
+      ({ tree, root } = await createTranche({
+        addresses: [CLAIMEE_1, CLAIMEE_2],
+        amounts: [CLAIMABLE_AMOUNT_1, CLAIMABLE_AMOUNT_2],
+        deadline: DEADLINE,
+      }));
+      proof = tree.getHexProof(getLeaf(CLAIMEE_1, CLAIMABLE_AMOUNT_1));
+    });
+    when('sending an empty merkle root', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(
+          multipleExpirablesAirdrop.claim(constants.HashZero, CLAIMEE_1, CLAIMABLE_AMOUNT_1, RECIPIENT, proof)
+        ).to.be.revertedWithCustomError(multipleExpirablesAirdrop, 'InvalidMerkleRoot');
+      });
+    });
+    when('sending zero amount', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(multipleExpirablesAirdrop.claim(root, CLAIMEE_1, constants.Zero, RECIPIENT, proof)).to.be.revertedWithCustomError(
+          multipleExpirablesAirdrop,
+          'InvalidAmount'
+        );
+      });
+    });
+    when('claimee is zero address', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(
+          multipleExpirablesAirdrop.claim(root, constants.AddressZero, CLAIMABLE_AMOUNT_1, RECIPIENT, proof)
+        ).to.be.revertedWithCustomError(multipleExpirablesAirdrop, 'ZeroAddress');
+      });
+    });
+    when('recipient is zero address', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(
+          multipleExpirablesAirdrop.claim(root, CLAIMEE_1, CLAIMABLE_AMOUNT_1, constants.AddressZero, proof)
+        ).to.be.revertedWithCustomError(multipleExpirablesAirdrop, 'ZeroAddress');
+      });
+    });
+    when('sending empty merkle proof', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(multipleExpirablesAirdrop.claim(root, CLAIMEE_1, CLAIMABLE_AMOUNT_1, RECIPIENT, [])).to.be.revertedWithCustomError(
+          multipleExpirablesAirdrop,
+          'InvalidProof'
+        );
+      });
+    });
+    when('airdrop has expired', () => {
+      given(async () => {
+        await time.increaseTo(DEADLINE + 1);
+      });
+      then('tx is reverted with custom error', async () => {
+        await expect(multipleExpirablesAirdrop.claim(root, CLAIMEE_1, CLAIMABLE_AMOUNT_1, RECIPIENT, proof)).to.be.revertedWithCustomError(
+          multipleExpirablesAirdrop,
+          'ExpiredTranche'
+        );
+      });
+    });
+    when('sending an invalid merkle proof', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(
+          multipleExpirablesAirdrop.claim(root, CLAIMEE_1, CLAIMABLE_AMOUNT_1, RECIPIENT, [randomHex(32), randomHex(32)])
+        ).to.be.revertedWithCustomError(multipleExpirablesAirdrop, 'InvalidProof');
+      });
+    });
+    when('claiming an already claimed tranche proof', () => {
+      given(async () => {
+        await multipleExpirablesAirdrop.claim(root, CLAIMEE_1, CLAIMABLE_AMOUNT_1, RECIPIENT, proof);
+      });
+      then('tx is reverted with custom error', async () => {
+        await expect(multipleExpirablesAirdrop.claim(root, CLAIMEE_1, CLAIMABLE_AMOUNT_1, RECIPIENT, proof)).to.be.revertedWithCustomError(
+          multipleExpirablesAirdrop,
+          'AlreadyClaimed'
+        );
+      });
+    });
+    when('all arguments are valid', () => {
+      let claimTx: TransactionResponse;
+      given(async () => {
+        claimTx = await multipleExpirablesAirdrop.claim(root, CLAIMEE_1, CLAIMABLE_AMOUNT_1, RECIPIENT, proof);
+      });
+      then(`sets tranche and claimee's proof as claimed`, async () => {
+        expect(await multipleExpirablesAirdrop.claimedTranches(getClaimId(root, CLAIMEE_1))).to.be.true;
+      });
+      then(`adds amount claimed to total tranche's claimed amount`, async () => {
+        const { claimed } = await multipleExpirablesAirdrop.tranches(root);
+        expect(claimed).to.be.equal(CLAIMABLE_AMOUNT_1);
+      });
+      then('emits event with information', async () => {
+        expect(claimTx).to.emit(multipleExpirablesAirdrop, 'TrancheClaimed').withArgs(root, CLAIMEE_1, CLAIMABLE_AMOUNT_2, RECIPIENT);
+      });
+    });
+  });
+
   describe('closeTranche', () => {
     const ROOT = randomHex(32);
     when('sending an empty merkle root', () => {
@@ -198,6 +302,10 @@ describe('MultipleExpirableAirdrop', () => {
     });
   });
 
+  function getClaimId(root: string, claimeeAddress: string): string {
+    return ethers.utils.solidityKeccak256(['bytes32', 'address'], [root, claimeeAddress]);
+  }
+
   function testCloseTranche({
     contextTitle,
     root,
@@ -237,5 +345,24 @@ describe('MultipleExpirableAirdrop', () => {
         await expect(closeTx).to.emit(multipleExpirablesAirdrop, 'TrancheClosed').withArgs(root, RECIPIENT, unclaimed);
       });
     });
+  }
+
+  async function createTranche({
+    addresses,
+    amounts,
+    deadline,
+  }: {
+    addresses: string[];
+    amounts: BigNumber[];
+    deadline: number;
+  }): Promise<{ tree: MerkleTree; root: string }> {
+    const tree = createMerkleTree(addresses, amounts);
+    const root = tree.getHexRoot();
+    const totalAmount = amounts.reduce((prevValue, currentValue) => prevValue.add(currentValue), constants.Zero);
+    await multipleExpirablesAirdrop.createTranche(root, totalAmount, deadline);
+    return {
+      tree,
+      root,
+    };
   }
 });
