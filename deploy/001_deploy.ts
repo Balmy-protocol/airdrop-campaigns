@@ -1,29 +1,34 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { getChainId, shouldVerifyContract } from '../utils/deploy';
-
-export const INITIAL_GREET: { [chainId: string]: string } = {
-  '1': 'Halo!',
-  '137': 'Halo to polygon network!',
-  '31337': 'Hello',
-};
+import { shouldVerifyContract } from '../utils/deploy';
+import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
+import { MultipleExpirableAirdrops__factory } from '@typechained';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer } = await hre.getNamedAccounts();
+  const { governor, deployer } = await hre.getNamedAccounts();
 
-  const chainId = await getChainId(hre);
+  const OP_TOKEN_ADDRESS = '0x4200000000000000000000000000000000000042';
 
-  const deploy = await hre.deployments.deploy('Greeter', {
-    contract: 'solidity/contracts/Greeter.sol:Greeter',
-    from: deployer,
-    args: [INITIAL_GREET[chainId]],
-    log: true,
+  const deploy = await deployThroughDeterministicFactory({
+    deployer,
+    name: 'MultipleExpirableAirdrops',
+    salt: 'MF-MultipleExpirableAirdrops-V1',
+    contract: 'solidity/contracts/MultipleExpirableAirdrops.sol:MultipleExpirableAirdrops',
+    bytecode: MultipleExpirableAirdrops__factory.bytecode,
+    constructorArgs: {
+      types: ['address', 'address'],
+      values: [governor, OP_TOKEN_ADDRESS],
+    },
+    log: !process.env.TEST,
+    overrides: {
+      gasLimit: 8_000_000,
+    },
   });
 
   if (await shouldVerifyContract(deploy)) {
     await hre.run('verify:verify', {
       address: deploy.address,
-      constructorArguments: [INITIAL_GREET[chainId]],
+      constructorArguments: deploy.args,
     });
   }
 };

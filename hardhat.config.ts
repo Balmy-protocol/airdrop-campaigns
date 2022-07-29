@@ -10,16 +10,7 @@ const networks: NetworksUserConfig =
   env.isHardhatCompile() || env.isHardhatClean() || env.isTesting()
     ? {}
     : {
-        hardhat: {
-          forking: {
-            enabled: process.env.FORK ? true : false,
-            url: env.getNodeUrl('ethereum'),
-          },
-        },
-        kovan: {
-          url: env.getNodeUrl('kovan'),
-          accounts: env.getAccounts('kovan'),
-        },
+        hardhat: {},
         ethereum: {
           url: env.getNodeUrl('ethereum'),
           accounts: env.getAccounts('ethereum'),
@@ -29,8 +20,11 @@ const networks: NetworksUserConfig =
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   namedAccounts: {
-    deployer: {
-      default: 0,
+    deployer: 4,
+    governor: {
+      // Gnosis multisigs
+      default: '0x1a00e1E311009E56e3b0B9Ed6F86f5Ce128a1C01',
+      optimism: '0x308810881807189cAe91950888b2cB73A1CC5920',
     },
   },
   mocha: {
