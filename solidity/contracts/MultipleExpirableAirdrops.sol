@@ -28,6 +28,7 @@ contract MultipleExpirableAirdrops is IMultipleExpirableAirdrops, Governable {
     if (_trancheMerkleRoot == bytes32(0)) revert InvalidMerkleRoot();
     if (_claimable == 0) revert InvalidAmount();
     if (_deadline <= block.timestamp) revert ExpiredTranche();
+    // TODO: Check if a trnache with same merkle root already exists => revert
 
     claimableToken.safeTransferFrom(msg.sender, address(this), _claimable);
     tranches[_trancheMerkleRoot] = TrancheInformation({claimable: _claimable, claimed: 0, deadline: _deadline});
@@ -87,6 +88,7 @@ contract MultipleExpirableAirdrops is IMultipleExpirableAirdrops, Governable {
     if (_recipient == address(0)) revert ZeroAddress();
     TrancheInformation memory _tranche = tranches[_trancheMerkleRoot];
     if (block.timestamp <= _tranche.deadline) revert TrancheStillActive();
+    // TODO: Check that there is something still to be claimed, a.k.a. tranche wasnt closed before
     _unclaimed = _tranche.claimable - _tranche.claimed;
     tranches[_trancheMerkleRoot].claimed = _tranche.claimable;
     claimableToken.safeTransfer(_recipient, _unclaimed);

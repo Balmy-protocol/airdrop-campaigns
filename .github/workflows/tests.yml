@@ -37,32 +37,36 @@ jobs:
           # Wallet.createRandom() won't work.
           # Ref.: https://github.com/ethers-io/ethers.js/issues/3082
           NODE_OPTIONS: --openssl-legacy-provider
-#   e2e:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Check out github repository
-#         uses: actions/checkout@v2
-#         with:
-#           fetch-depth: 1
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out github repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
 
-#       - name: Cache node modules
-#         uses: actions/cache@v2
-#         env:
-#           cache-name: cache-node-modules
-#         with:
-#           path: "**/node_modules"
-#           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+      - name: Cache node modules
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: "**/node_modules"
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
 
-#       - name: Install node
-#         uses: actions/setup-node@v1
-#         with:
-#           node-version: "18.x"
+      - name: Install node
+        uses: actions/setup-node@v1
+        with:
+          node-version: "18.x"
 
-#       - name: Install dependencies
-#         run: yarn --frozen-lockfile
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
 
-#       - name: Run e2e tests
-#         run: yarn test:e2e
+      - name: Run e2e tests
+        run: yarn test:e2e
+        env:
+          # Wallet.createRandom() won't work.
+          # Ref.: https://github.com/ethers-io/ethers.js/issues/3082
+          NODE_OPTIONS: --openssl-legacy-provider
 #   integration:
 #     runs-on: ubuntu-latest
 #     steps:

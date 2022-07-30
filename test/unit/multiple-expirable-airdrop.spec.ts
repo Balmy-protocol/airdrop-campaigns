@@ -13,10 +13,11 @@ import { TransactionResponse } from '@ethersproject/providers';
 import { getAddress } from 'ethers/lib/utils';
 import { getLeaf, createMerkleTree } from '@utils/merkle-proof';
 import MerkleTree from 'merkletreejs';
+import { generateRandomAddress } from '@utils/wallet';
 
 chai.use(smock.matchers);
 
-describe('MultipleExpirableAirdrop', () => {
+describe('MultipleExpirableAirdrops', () => {
   let governor: SignerWithAddress;
   let user: SignerWithAddress;
   let claimableToken: FakeContract<IERC20>;
@@ -47,7 +48,7 @@ describe('MultipleExpirableAirdrop', () => {
       then('tx is reverted with custom error', async () => {
         await behaviours.deployShouldRevertWithCustomError({
           contract: multipleExpirablesAirdropFactory,
-          args: [randomHex(20), constants.AddressZero],
+          args: [generateRandomAddress(), constants.AddressZero],
           customErrorName: 'ZeroAddress',
         });
       });
@@ -113,7 +114,7 @@ describe('MultipleExpirableAirdrop', () => {
 
   describe('claimAndSendToClaimee', () => {
     const ROOT = randomHex(32);
-    const CLAIMEE = getAddress(randomHex(20));
+    const CLAIMEE = getAddress(generateRandomAddress());
     const CLAIMABLE_AMOUNT = utils.parseEther('12.34');
     const PROOF = [randomHex(32), randomHex(32)];
     given(async () => {
@@ -132,7 +133,7 @@ describe('MultipleExpirableAirdrop', () => {
 
   describe('claimAndTransfer', () => {
     const ROOT = randomHex(32);
-    const RECIPIENT = getAddress(randomHex(20));
+    const RECIPIENT = getAddress(generateRandomAddress());
     const CLAIMABLE_AMOUNT = utils.parseEther('12.34');
     const PROOF = [randomHex(32), randomHex(32)];
     given(async () => {
@@ -152,9 +153,9 @@ describe('MultipleExpirableAirdrop', () => {
   describe('_claim', () => {
     let proof: string[];
     let root: string;
-    const CLAIMEE_1 = getAddress(randomHex(20));
-    const CLAIMEE_2 = getAddress(randomHex(20));
-    const RECIPIENT = getAddress(randomHex(20));
+    const CLAIMEE_1 = getAddress(generateRandomAddress());
+    const CLAIMEE_2 = getAddress(generateRandomAddress());
+    const RECIPIENT = getAddress(generateRandomAddress());
     const CLAIMABLE_AMOUNT_1 = utils.parseEther('12.34');
     const CLAIMABLE_AMOUNT_2 = utils.parseEther('420.69');
     const DEADLINE = moment().add('1', 'week').unix();
@@ -255,7 +256,7 @@ describe('MultipleExpirableAirdrop', () => {
     const ROOT = randomHex(32);
     when('sending an empty merkle root', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(multipleExpirablesAirdrop.closeTranche(constants.HashZero, randomHex(20))).to.be.revertedWithCustomError(
+        await expect(multipleExpirablesAirdrop.closeTranche(constants.HashZero, generateRandomAddress())).to.be.revertedWithCustomError(
           multipleExpirablesAirdrop,
           'InvalidMerkleRoot'
         );
@@ -274,7 +275,7 @@ describe('MultipleExpirableAirdrop', () => {
         await multipleExpirablesAirdrop.createTranche(ROOT, 1, moment().add('1', 'week').unix());
       });
       then('tx is reverted with custom error', async () => {
-        await expect(multipleExpirablesAirdrop.closeTranche(ROOT, randomHex(20))).to.be.revertedWithCustomError(
+        await expect(multipleExpirablesAirdrop.closeTranche(ROOT, generateRandomAddress())).to.be.revertedWithCustomError(
           multipleExpirablesAirdrop,
           'TrancheStillActive'
         );
@@ -319,7 +320,7 @@ describe('MultipleExpirableAirdrop', () => {
   }): void {
     context(contextTitle, () => {
       let closeTx: TransactionResponse;
-      const RECIPIENT = getAddress(randomHex(20));
+      const RECIPIENT = getAddress(generateRandomAddress());
       const DEADLINE = moment().add('1', 'week').unix();
       const unclaimed = claimable.sub(claimed);
       given(async () => {
