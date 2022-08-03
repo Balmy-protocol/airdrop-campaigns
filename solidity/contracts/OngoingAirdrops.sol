@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
-import './utils/Governable.sol';
 import '../interfaces/IOngoingAirdrops.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
-contract OngoingAirdrops is Governable, IOngoingAirdrops {
+contract OngoingAirdrops is IOngoingAirdrops {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc IOngoingAirdrops
@@ -20,7 +19,7 @@ contract OngoingAirdrops is Governable, IOngoingAirdrops {
   /// @inheritdoc IOngoingAirdrops
   mapping(bytes32 => uint256) public totalClaimedByCampaignAndToken;
 
-  constructor(address _governor) Governable(_governor) {}
+  constructor() {}
 
   /// @inheritdoc IOngoingAirdrops
   function updateCampaign(
