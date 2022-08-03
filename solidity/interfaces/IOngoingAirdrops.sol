@@ -4,11 +4,12 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 /**
- * @title A contract that will enable users to claim from multiple ongoing airdrops, and each airdorp will have a deadline.
+ * @title A contract that will enable users to claim from multiple ongoing airdrops.
  * @notice This contract will enable multiple ongoing and updateable airdrops (called campaigns). Each of this campaigns
- *         will have an updateable deadline, and will be able to hold airdrop information for multiple tokens.
- *         Additionally, governor will be able to shutdown a campaign whenever it choses to. Since this is a pretty
- *         permissioned contract, governor has full control over funds.
+ *         will be able to hold airdrop information for multiple tokens through their root.
+ *         Additionally, admins will be able to shutdown a campaign whenever it choses to. Since this is a pretty
+ *         permissioned contract, admins have full control over the funds. Some modifications can be done so its less
+ *         permissioned.
  */
 interface IOngoingAirdrops {
   /**
@@ -35,9 +36,6 @@ interface IOngoingAirdrops {
   /// @notice Thrown when validating an airdrop claim with the proof is invalid.
   error InvalidProof();
 
-  /// @notice Thrown when trying to update a campaign's deadline to an invalid moment.
-  error InvalidDeadline();
-
   /// @notice Thrown when trying to claim an expired campaign.
   error ExpiredCampaing();
 
@@ -49,9 +47,8 @@ interface IOngoingAirdrops {
    * @param campaign Campaign name updated
    * @param root Merkle root that will be used to validate campaign claims
    * @param tokensAllocation Array of the sum of all tokens and amounts airdropped in the campaign
-   * @param deadline Timestamp until when the campaign is claimable
    */
-  event CampaignUpdated(bytes32 campaign, bytes32 root, TokenAmount[] tokensAllocation, uint256 deadline);
+  event CampaignUpdated(bytes32 campaign, bytes32 root, TokenAmount[] tokensAllocation);
 
   /**
    * @notice Emitted when a balance a tranche gets closed
@@ -82,14 +79,6 @@ interface IOngoingAirdrops {
   function roots(bytes32 campaign) external view returns (bytes32);
 
   /**
-   * @notice Exposes campaign's deadline until which the campaign is claimable
-   * @dev This value cannot be modified
-   * @param campaign Campaign's name
-   * @return Timestamp of deadline
-   */
-  function deadline(bytes32 campaign) external view returns (uint256);
-
-  /**
    * @notice Exposes token amount claimed by user on a given campaign
    * @dev This value cannot be modified
    * @param campaignTokenAndUserId Id built by hashing concatenated values of: Campaign name, token address and user address.
@@ -114,23 +103,20 @@ interface IOngoingAirdrops {
   function totalClaimedByCampaignAndToken(bytes32 campaignAndTokenId) external view returns (uint256);
 
   /**
-   * @notice Updates campaign information: Tokens allocation, merkle root and deadline.
+   * @notice Updates campaign information: Tokens allocation and merkle root.
    * @dev Only callable by governor.
    * Will revert:
    *   - With InvalidCampaign if campaign is zero bytes.
    *   - With InvalidMerkleRoot if trancheMerkleRoot is zero bytes.
    *   - With InvalidTokenAmount if length is zero.
-   *   - With InvalidDeadline if deadline has already passed, or its now.
    * @param campaign Campaign being updated
    * @param root Campaign's merkle root that will be used to prove user claims
    * @param tokensAllocation Array of sum of all airdropped amounts and token on campaign being.
-   * @param deadline Timestamp in which the campaign will become unclaimable for users
    */
   function updateCampaign(
     bytes32 campaign,
     bytes32 root,
-    TokenAmount[] calldata tokensAllocation,
-    uint256 deadline
+    TokenAmount[] calldata tokensAllocation
   ) external;
 
   /**
@@ -176,7 +162,7 @@ interface IOngoingAirdrops {
   ) external;
 
   /**
-   * @notice Withdraws the unclaimed tokens of a tranche past its deadline.
+   * @notice Withdraws the unclaimed tokens of a tranche.
    * @dev Only callable by governor.
    * @param campaign Campaign being shutdown.
    * @param tokens Array of the token addresses being taken from contract.

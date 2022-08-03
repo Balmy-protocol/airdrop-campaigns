@@ -11,8 +11,6 @@ contract OngoingAirdrops is IOngoingAirdrops {
   /// @inheritdoc IOngoingAirdrops
   mapping(bytes32 => bytes32) public roots;
   /// @inheritdoc IOngoingAirdrops
-  mapping(bytes32 => uint256) public deadline;
-  /// @inheritdoc IOngoingAirdrops
   mapping(bytes32 => uint256) public amountClaimedByCampaignTokenAndUser;
   /// @inheritdoc IOngoingAirdrops
   mapping(bytes32 => uint256) public totalAirdropedByCampaignAndToken;
@@ -25,8 +23,7 @@ contract OngoingAirdrops is IOngoingAirdrops {
   function updateCampaign(
     bytes32 _campaign,
     bytes32 _root,
-    TokenAmount[] calldata _tokensAllocation,
-    uint256 _deadline
+    TokenAmount[] calldata _tokensAllocation
   ) external override {}
 
   /// @inheritdoc IOngoingAirdrops
