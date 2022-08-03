@@ -51,5 +51,5 @@ abstract contract OngoingAirdrops is Governable, IOngoingAirdrops {
     bytes32 _campaign,
     IERC20[] calldata _tokens,
     address _recipient
-  ) external override returns (uint256[] memory unclaimed) {}
+  ) external override returns (uint256[] memory _unclaimed) {}
 }
