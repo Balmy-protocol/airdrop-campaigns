@@ -17,7 +17,6 @@ contract OngoingAirdrops is IOngoingAirdrops {
   /// @inheritdoc IOngoingAirdrops
   mapping(bytes32 => uint256) public totalClaimedByCampaignAndToken;
 
-  constructor() {}
 
   /// @inheritdoc IOngoingAirdrops
   function updateCampaign(
