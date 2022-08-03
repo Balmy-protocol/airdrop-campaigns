@@ -6,13 +6,13 @@ import '../interfaces/IOngoingAirdrops.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
-abstract contract OngoingAirdrops is Governable, IOngoingAirdrops {
+contract OngoingAirdrops is Governable, IOngoingAirdrops {
   using SafeERC20 for IERC20;
 
   /// @inheritdoc IOngoingAirdrops
   mapping(bytes32 => bytes32) public roots;
   /// @inheritdoc IOngoingAirdrops
-  mapping(bytes32 => uint32) public deadline;
+  mapping(bytes32 => uint256) public deadline;
   /// @inheritdoc IOngoingAirdrops
   mapping(bytes32 => uint256) public amountClaimedByCampaignTokenAndUser;
   /// @inheritdoc IOngoingAirdrops
@@ -27,7 +27,7 @@ abstract contract OngoingAirdrops is Governable, IOngoingAirdrops {
     bytes32 _campaign,
     bytes32 _root,
     TokenAmount[] calldata _tokensAllocation,
-    uint32 _deadline
+    uint256 _deadline
   ) external override {}
 
   /// @inheritdoc IOngoingAirdrops
