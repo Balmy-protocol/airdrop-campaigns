@@ -27,8 +27,11 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
-    for (uint256 i; i < _initialAdmins.length; i++) {
+    for (uint256 i = 0; i < _initialAdmins.length; ) {
       _setupRole(ADMIN_ROLE, _initialAdmins[i]);
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -42,26 +45,37 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     if (_root == bytes32(0)) revert InvalidMerkleRoot();
     if (_tokensAllocation.length == 0) revert InvalidTokenAmount();
 
-    for (uint256 i = 0; i < _tokensAllocation.length; i++) {
+    for (uint256 i = 0; i < _tokensAllocation.length; ) {
+      // Move from calldata to memory
+      TokenAmount memory _tokenAllocation = _tokensAllocation[i];
+
       // Build our unique ID for campaign and token address.
-      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _tokensAllocation[i].token);
+      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _tokenAllocation.token);
 
       // Move storage var to memory.
       uint256 _currentTotalAirdropped = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
 
       // We can not lower the amount of total claimable on a campaign since that would break
       // the maths for the "ongoing airdrops".
-      if (_tokensAllocation[i].amount < _currentTotalAirdropped) revert InvalidTokenAmount();
+      if (_tokenAllocation.amount < _currentTotalAirdropped) revert InvalidTokenAmount();
 
       // Refill needed represents the amount of tokens needed to
       // transfer into the contract to allow every user to claim the updated rewards
-      uint256 _refillNeeded = _tokensAllocation[i].amount - _currentTotalAirdropped;
+      uint256 _refillNeeded;
+      // We can use unchecked, since we have checked this in L57
+      unchecked {
+        _refillNeeded = _tokenAllocation.amount - _currentTotalAirdropped;
+      }
 
       // Update total claimable reward on campaign
-      totalAirdroppedByCampaignAndToken[_campaignAndTokenId] = _tokensAllocation[i].amount;
+      totalAirdroppedByCampaignAndToken[_campaignAndTokenId] = _tokenAllocation.amount;
 
       // Refill contract with the ERC20 tokens
-      _tokensAllocation[i].token.safeTransferFrom(msg.sender, address(this), _refillNeeded);
+      _tokenAllocation.token.safeTransferFrom(msg.sender, address(this), _refillNeeded);
+
+      unchecked {
+        i++;
+      }
     }
 
     // Update the information
