@@ -248,3 +248,46 @@ export const shouldBeExecutableOnlyByGovernor = ({
     });
   });
 };
+
+export const shouldBeExecutableOnlyByRole = ({
+  contract,
+  funcAndSignature,
+  params,
+  addressWithRole,
+  role,
+}: {
+  contract: () => Contract;
+  funcAndSignature: string;
+  params?: (() => any[]) | any[];
+  addressWithRole: () => SignerWithAddress;
+  role: () => string;
+}) => {
+  let realParams: any[];
+  given(() => {
+    realParams = typeof params === 'function' ? params() : params ?? [];
+  });
+  when('called from address without role', () => {
+    let tx: Promise<TransactionResponse>;
+    let walletWithoutRole: Wallet;
+    given(async () => {
+      walletWithoutRole = await wallet.generateRandom();
+      tx = contract()
+        .connect(walletWithoutRole)
+        [funcAndSignature](...realParams);
+    });
+    then('tx is reverted with reason', async () => {
+      await expect(tx).to.be.revertedWith(`AccessControl: account ${walletWithoutRole.address.toLowerCase()} is missing role ${role()}`);
+    });
+  });
+  when('called from address with role', () => {
+    let tx: Promise<TransactionResponse>;
+    given(async () => {
+      tx = contract()
+        .connect(addressWithRole())
+        [funcAndSignature](...realParams);
+    });
+    then('tx is not reverted or not reverted with reason only governor', async () => {
+      await expect(tx).to.not.be.revertedWith(`AccessControl: account ${addressWithRole().address.toLowerCase()} is missing role ${role()}`);
+    });
+  });
+};

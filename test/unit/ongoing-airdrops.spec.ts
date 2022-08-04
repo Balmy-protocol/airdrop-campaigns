@@ -1,36 +1,37 @@
 import chai, { expect } from 'chai';
 import { when, then, given } from '@utils/bdd';
-import { IERC20, IOngoingAirdrops, OngoingAirdropsMock, OngoingAirdropsMock__factory } from '@typechained';
+import { IERC20, OngoingAirdropsMock, OngoingAirdropsMock__factory } from '@typechained';
 import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { takeSnapshot, SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers';
 import { BigNumber, constants } from 'ethers';
 import { randomHex } from 'web3-utils';
-import moment from 'moment';
+import { getArgsFromEvent } from '@utils/event-utils';
 import { behaviours } from '@utils';
 import { TransactionResponse } from '@ethersproject/providers';
-import { getArgsFromEvent } from '@utils/event-utils';
 
 chai.use(smock.matchers);
 
 describe('OngoingAirdrops', () => {
-  let governor: SignerWithAddress;
+  let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let ongoingAirdropsFactory: OngoingAirdropsMock__factory;
   let ongoingAirdrops: OngoingAirdropsMock;
+  let superAdminRole: string, adminRole: string;
   let snapshot: SnapshotRestorer;
 
   const tokens: FakeContract<IERC20>[] = [];
 
   before('Setup accounts and contracts', async () => {
-    [governor] = await ethers.getSigners();
+    [, superAdmin, admin] = await ethers.getSigners();
     ongoingAirdropsFactory = (await ethers.getContractFactory(
       'solidity/contracts/test/OngoingAirdrops.sol:OngoingAirdropsMock'
     )) as OngoingAirdropsMock__factory;
-    ongoingAirdrops = await ongoingAirdropsFactory.deploy(governor.address);
     for (let i = 0; i < 10; i++) {
       tokens.push(await smock.fake('IERC20'));
     }
+    ongoingAirdrops = await ongoingAirdropsFactory.deploy(superAdmin.address, [admin.address]);
+    [superAdminRole, adminRole] = await Promise.all([ongoingAirdrops.SUPER_ADMIN_ROLE(), ongoingAirdrops.ADMIN_ROLE()]);
     snapshot = await takeSnapshot();
   });
 
@@ -43,9 +44,31 @@ describe('OngoingAirdrops', () => {
   });
 
   describe('constructor', () => {
+    when('super admin is zero address', () => {
+      then('tx is reverted with custom error', async () => {
+        await behaviours.deployShouldRevertWithCustomError({
+          contract: ongoingAirdropsFactory,
+          args: [constants.AddressZero, []],
+          customErrorName: 'ZeroAddress',
+        });
+      });
+    });
     when('all arguments are valid', () => {
-      then('governor is set correctly', async () => {
-        expect(await ongoingAirdrops.governor()).to.be.equal(governor.address);
+      then('super admin is set correctly', async () => {
+        const hasRole = await ongoingAirdrops.hasRole(superAdminRole, superAdmin.address);
+        expect(hasRole).to.be.true;
+      });
+      then('initial admins are set correctly', async () => {
+        const hasRole = await ongoingAirdrops.hasRole(adminRole, admin.address);
+        expect(hasRole).to.be.true;
+      });
+      then('super admin role is set as super admin role', async () => {
+        const admin = await ongoingAirdrops.getRoleAdmin(superAdminRole);
+        expect(admin).to.equal(superAdminRole);
+      });
+      then('super admin role is set as admin role', async () => {
+        const admin = await ongoingAirdrops.getRoleAdmin(adminRole);
+        expect(admin).to.equal(superAdminRole);
       });
     });
   });
@@ -53,7 +76,7 @@ describe('OngoingAirdrops', () => {
   describe('updateCampaign', () => {
     when('sending an empty campaign', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(ongoingAirdrops.updateCampaign(constants.HashZero, randomHex(32), [], 0)).to.be.revertedWithCustomError(
+        await expect(ongoingAirdrops.connect(admin).updateCampaign(constants.HashZero, randomHex(32), [])).to.be.revertedWithCustomError(
           ongoingAirdrops,
           'InvalidCampaign'
         );
@@ -61,7 +84,7 @@ describe('OngoingAirdrops', () => {
     });
     when('sending an empty merkle root', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(ongoingAirdrops.updateCampaign(randomHex(32), constants.HashZero, [], 0)).to.be.revertedWithCustomError(
+        await expect(ongoingAirdrops.connect(admin).updateCampaign(randomHex(32), constants.HashZero, [])).to.be.revertedWithCustomError(
           ongoingAirdrops,
           'InvalidMerkleRoot'
         );
@@ -69,22 +92,10 @@ describe('OngoingAirdrops', () => {
     });
     when('sending empty token allocations', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(ongoingAirdrops.updateCampaign(randomHex(32), randomHex(32), [], 0)).to.be.revertedWithCustomError(
+        await expect(ongoingAirdrops.connect(admin).updateCampaign(randomHex(32), randomHex(32), [])).to.be.revertedWithCustomError(
           ongoingAirdrops,
           'InvalidTokenAmount'
         );
-      });
-    });
-    when('trying to create a tranche with a deadline previous than now', () => {
-      then('tx is reverted with custom error', async () => {
-        await expect(
-          ongoingAirdrops.updateCampaign(
-            randomHex(32),
-            randomHex(32),
-            [{ token: randomHex(20), amount: constants.One }],
-            moment().subtract('1', 'second').unix()
-          )
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidDeadline');
       });
     });
 
@@ -97,7 +108,7 @@ describe('OngoingAirdrops', () => {
       });
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingAirdrops.updateCampaign(campaign, randomHex(32), [{ token, amount: airdroppedAmount.sub(1) }], moment().add('1', 'week').unix())
+          ongoingAirdrops.connect(admin).updateCampaign(campaign, randomHex(32), [{ token, amount: airdroppedAmount.sub(1) }])
         ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidTokenAmount');
       });
     });
@@ -114,11 +125,12 @@ describe('OngoingAirdrops', () => {
       newAllocations: [100, 230],
     });
 
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => ongoingAirdrops,
-      funcAndSignature: 'updateCampaign(bytes32,bytes32,(address,uint256)[],uint32)',
-      params: [constants.HashZero, constants.HashZero, [], 0],
-      governor: () => governor,
+      funcAndSignature: 'updateCampaign(bytes32,bytes32,(address,uint256)[])',
+      params: [constants.HashZero, constants.HashZero, []],
+      addressWithRole: () => admin,
+      role: () => adminRole,
     });
   });
 
@@ -133,20 +145,18 @@ describe('OngoingAirdrops', () => {
   }) {
     const root = randomHex(32);
     const campaign = randomHex(32);
-    const deadline = moment().add('1', 'week').unix();
     when(title, () => {
       let updateTx: TransactionResponse;
       given(async () => {
         for (let i = 0; i < previousAllocations.length; i++) {
           await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, previousAllocations[i]);
         }
-        updateTx = await ongoingAirdrops.updateCampaign(
+        updateTx = await ongoingAirdrops.connect(admin).updateCampaign(
           campaign,
           root,
           newAllocations.map((allocation, i) => {
             return { token: tokens[i].address, amount: allocation };
-          }),
-          deadline
+          })
         );
       });
       then('updates total airdropped amount by campaign and token', async () => {
@@ -159,7 +169,7 @@ describe('OngoingAirdrops', () => {
       then('transfers the correct amount to the contract', () => {
         for (let i = 0; i < previousAllocations.length; i++) {
           expect(tokens[i].transferFrom).to.have.been.calledOnceWith(
-            governor.address,
+            admin.address,
             ongoingAirdrops.address,
             newAllocations[i] - previousAllocations[i]
           );
@@ -168,14 +178,10 @@ describe('OngoingAirdrops', () => {
       then('updates root', async () => {
         expect(await ongoingAirdrops.roots(campaign)).to.be.equal(root);
       });
-      then('updates deadline correctly', async () => {
-        expect(await ongoingAirdrops.deadline(campaign)).to.be.equal(deadline);
-      });
       then('emits event with correct information', async () => {
         const transactionArgs = await getArgsFromEvent(updateTx, 'CampaignUpdated');
         expect(transactionArgs.campaign).to.be.equal(campaign);
         expect(transactionArgs.root).to.be.equal(root);
-        expect(transactionArgs.deadline).to.be.equal(deadline);
         expect(transactionArgs.tokensAllocation.length).to.equal(newAllocations.length);
         for (let i = 0; i < transactionArgs.tokensAllocation.length; i++) {
           expect(transactionArgs.tokensAllocation[i].token).to.be.equal(tokens[i].address);

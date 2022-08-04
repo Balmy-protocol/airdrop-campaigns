@@ -4,7 +4,7 @@ pragma solidity >=0.8.7 <0.9.0;
 import '../OngoingAirdrops.sol';
 
 contract OngoingAirdropsMock is OngoingAirdrops {
-  constructor(address _governor) OngoingAirdrops(_governor) {}
+  constructor(address _superAdmin, address[] memory _initialAdmins) OngoingAirdrops(_superAdmin, _initialAdmins) {}
 
   function setTotalAirdroppedByCampaignAndToken(
     bytes32 _campaign,

@@ -33,6 +33,10 @@ jobs:
 
       - name: Run unit tests
         run: yarn test:unit
+        env:
+          # Wallet.createRandom() won't work.
+          # Ref.: https://github.com/ethers-io/ethers.js/issues/3082
+          NODE_OPTIONS: --openssl-legacy-provider
 #   e2e:
 #     runs-on: ubuntu-latest
 #     steps:
