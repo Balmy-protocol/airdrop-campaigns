@@ -10,7 +10,6 @@ import { randomHex } from 'web3-utils';
 import { getArgsFromEvent } from '@utils/event-utils';
 import { behaviours } from '@utils';
 import { TransactionResponse } from '@ethersproject/providers';
-import { getAddress } from 'ethers/lib/utils';
 import { generateRandomAddress } from '@utils/wallet';
 
 chai.use(smock.matchers);
@@ -138,7 +137,7 @@ describe('OngoingAirdrops', () => {
     });
   });
 
-  describe.only('shutdown', () => {
+  describe('shutdown', () => {
     testShutdown({
       title: 'there is no claimed tokens',
       totalAirdropped: [100, 200, 300],
@@ -147,6 +146,12 @@ describe('OngoingAirdrops', () => {
 
     testShutdown({
       title: 'some tokens were claimed',
+      totalAirdropped: [100, 200, 300],
+      totalClaimed: [50, 4, 280],
+    });
+
+    testShutdown({
+      title: 'some tokens were all claimed',
       totalAirdropped: [100, 200, 300],
       totalClaimed: [50, 4, 300],
     });
