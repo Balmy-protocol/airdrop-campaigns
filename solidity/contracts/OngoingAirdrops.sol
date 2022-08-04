@@ -37,7 +37,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     bytes32 _campaign,
     bytes32 _root,
     TokenAmount[] calldata _tokensAllocation
-  ) external override onlyRole(ADMIN_ROLE) {
+  ) external onlyRole(ADMIN_ROLE) {
     if (_campaign == bytes32(0)) revert InvalidCampaign();
     if (_root == bytes32(0)) revert InvalidMerkleRoot();
     if (_tokensAllocation.length == 0) revert InvalidTokenAmount();
@@ -77,7 +77,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     address _claimee,
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
-  ) external override {}
+  ) external {}
 
   /// @inheritdoc IOngoingAirdrops
   function claimAndTransfer(
@@ -85,14 +85,32 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     TokenAmount[] calldata _tokensAmounts,
     address _recipient,
     bytes32[] calldata _proof
-  ) external override {}
+  ) external {}
 
   /// @inheritdoc IOngoingAirdrops
   function shutdown(
     bytes32 _campaign,
     IERC20[] calldata _tokens,
     address _recipient
-  ) external override returns (uint256[] memory _unclaimed) {}
+  ) external onlyRole(ADMIN_ROLE) returns (uint256[] memory _unclaimed) {
+    _unclaimed = new uint256[](_tokens.length);
+    // We set campaign root to zero, so users can't claim this campaign
+    roots[_campaign] = bytes32(0);
+    for (uint256 i; i < _tokens.length; i++) {
+      // Build our unique ID for campaign and token address.
+      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _tokens[i]);
+      // Move var from storage to memory
+      uint256 _totalAirdroppedByCampaignAndToken = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
+      // Understand how much is still available
+      _unclaimed[i] = _totalAirdroppedByCampaignAndToken - totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      // We update storage so if we call shutdown again we don't break token balances
+      totalClaimedByCampaignAndToken[_campaignAndTokenId] = _totalAirdroppedByCampaignAndToken;
+      // Transfer it out to recipient
+      _tokens[i].safeTransfer(_recipient, _unclaimed[i]);
+    }
+
+    emit CampaignShutdDown(_campaign, _tokens, _unclaimed, _recipient);
+  }
 
   function _getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token));

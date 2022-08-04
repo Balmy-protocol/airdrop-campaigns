@@ -13,4 +13,12 @@ contract OngoingAirdropsMock is OngoingAirdrops {
   ) external {
     totalAirdroppedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)] = _amount;
   }
+
+  function setTotalClaimedByCampaignAndToken(
+    bytes32 _campaign,
+    IERC20 _token,
+    uint256 _amount
+  ) external {
+    totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)] = _amount;
+  }
 }

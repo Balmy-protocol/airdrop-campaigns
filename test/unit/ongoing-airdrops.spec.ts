@@ -10,6 +10,8 @@ import { randomHex } from 'web3-utils';
 import { getArgsFromEvent } from '@utils/event-utils';
 import { behaviours } from '@utils';
 import { TransactionResponse } from '@ethersproject/providers';
+import { getAddress } from 'ethers/lib/utils';
+import { generateRandomAddress } from '@utils/wallet';
 
 chai.use(smock.matchers);
 
@@ -38,7 +40,9 @@ describe('OngoingAirdrops', () => {
   beforeEach(async () => {
     await snapshot.restore();
     for (let i = 0; i < 10; i++) {
+      tokens[i].transfer.reset();
       tokens[i].transferFrom.reset();
+      tokens[i].transfer.returns(true);
       tokens[i].transferFrom.returns(true);
     }
   });
@@ -134,6 +138,34 @@ describe('OngoingAirdrops', () => {
     });
   });
 
+  describe.only('shutdown', () => {
+    testShutdown({
+      title: 'there is no claimed tokens',
+      totalAirdropped: [100, 200, 300],
+      totalClaimed: [0, 0, 0],
+    });
+
+    testShutdown({
+      title: 'some tokens were claimed',
+      totalAirdropped: [100, 200, 300],
+      totalClaimed: [50, 4, 300],
+    });
+
+    testShutdown({
+      title: 'all tokens were claimed',
+      totalAirdropped: [100, 200, 300],
+      totalClaimed: [100, 200, 300],
+    });
+
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => ongoingAirdrops,
+      funcAndSignature: 'shutdown(bytes32,address[],address)',
+      params: [constants.HashZero, [], constants.AddressZero],
+      addressWithRole: () => admin,
+      role: () => adminRole,
+    });
+  });
+
   function testUpdateCampaign({
     title,
     previousAllocations,
@@ -186,6 +218,52 @@ describe('OngoingAirdrops', () => {
         for (let i = 0; i < transactionArgs.tokensAllocation.length; i++) {
           expect(transactionArgs.tokensAllocation[i].token).to.be.equal(tokens[i].address);
           expect(transactionArgs.tokensAllocation[i].amount).to.be.equal(newAllocations[i]);
+        }
+      });
+    });
+  }
+
+  function testShutdown({ title, totalAirdropped, totalClaimed }: { title: string; totalAirdropped: number[]; totalClaimed: number[] }) {
+    // const root = randomHex(32);
+    const campaign = randomHex(32);
+    const unclaimed = totalAirdropped.map((airdropped, i) => airdropped - totalClaimed[i]);
+    const recipient = generateRandomAddress();
+    let tokenAddresses: string[];
+    when(title, () => {
+      let shutdownTx: TransactionResponse;
+      given(async () => {
+        tokenAddresses = [];
+        for (let i = 0; i < totalAirdropped.length; i++) {
+          await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, totalAirdropped[i]);
+          await ongoingAirdrops.setTotalClaimedByCampaignAndToken(campaign, tokens[i].address, totalClaimed[i]);
+          tokenAddresses.push(tokens[i].address);
+          // = tokens.slice(0, totalAirdropped.length).map(token => getAddress(token.address));
+        }
+        shutdownTx = await ongoingAirdrops.connect(admin).shutdown(campaign, tokenAddresses, recipient);
+      });
+      then('root is set to zero hash', async () => {
+        expect(await ongoingAirdrops.roots(campaign)).to.be.equal(constants.HashZero);
+      });
+      then('total claimed by campaign and token gets updated', async () => {
+        for (let i = 0; i < totalAirdropped.length; i++) {
+          expect(await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(
+            totalAirdropped[i]
+          );
+        }
+      });
+      then('transfers out the correct amount to the recipient', () => {
+        for (let i = 0; i < totalAirdropped.length; i++) {
+          expect(tokens[i].transfer).to.have.been.calledWith(recipient, unclaimed[i]);
+        }
+      });
+      then('emits event with correct information', async () => {
+        const transactionArgs = await getArgsFromEvent(shutdownTx, 'CampaignShutdDown');
+        expect(transactionArgs.campaign).to.be.equal(campaign);
+        expect(transactionArgs.tokens).to.be.eql(tokenAddresses);
+        expect(transactionArgs.recipient).to.be.equal(recipient);
+        expect(transactionArgs.unclaimed.length).to.equal(unclaimed.length);
+        for (let i = 0; i < transactionArgs.unclaimed.length; i++) {
+          expect(transactionArgs.unclaimed[i]).to.be.equal(unclaimed[i]);
         }
       });
     });
