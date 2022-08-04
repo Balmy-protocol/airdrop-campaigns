@@ -38,7 +38,7 @@ describe('OngoingAirdrops', () => {
 
   beforeEach(async () => {
     await snapshot.restore();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < tokens.length; i++) {
       tokens[i].transfer.reset();
       tokens[i].transferFrom.reset();
       tokens[i].transfer.returns(true);
