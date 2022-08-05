@@ -91,7 +91,9 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     address _claimee,
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
-  ) external {}
+  ) external {
+    _claim(_campaign, _claimee, _tokensAmounts, _claimee, _proof);
+  }
 
   /// @inheritdoc IOngoingAirdrops
   function claimAndTransfer(
@@ -99,7 +101,17 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     TokenAmount[] calldata _tokensAmounts,
     address _recipient,
     bytes32[] calldata _proof
-  ) external {}
+  ) external {
+    _claim(_campaign, msg.sender, _tokensAmounts, _recipient, _proof);
+  }
+
+  function _claim(
+    bytes32 _campaign,
+    address _claimee,
+    TokenAmount[] calldata _tokensAmounts,
+    address _recipient,
+    bytes32[] calldata _proof
+  ) internal virtual {}
 
   /// @inheritdoc IOngoingAirdrops
   function shutdown(

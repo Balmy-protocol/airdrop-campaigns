@@ -1,11 +1,11 @@
 import chai, { expect } from 'chai';
 import { when, then, given } from '@utils/bdd';
-import { IERC20, OngoingAirdropsMock, OngoingAirdropsMock__factory } from '@typechained';
+import { IERC20, IOngoingAirdrops, OngoingAirdropsMock, OngoingAirdropsMock__factory } from '@typechained';
 import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { takeSnapshot, SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers';
-import { BigNumber, constants } from 'ethers';
+import { BigNumber, constants, utils } from 'ethers';
 import { randomHex } from 'web3-utils';
 import { getArgsFromEvent } from '@utils/event-utils';
 import { behaviours } from '@utils';
@@ -15,6 +15,7 @@ import { generateRandomAddress } from '@utils/wallet';
 chai.use(smock.matchers);
 
 describe('OngoingAirdrops', () => {
+  let user: SignerWithAddress;
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
   let ongoingAirdropsFactory: OngoingAirdropsMock__factory;
   let ongoingAirdrops: OngoingAirdropsMock;
@@ -24,7 +25,7 @@ describe('OngoingAirdrops', () => {
   const tokens: FakeContract<IERC20>[] = [];
 
   before('Setup accounts and contracts', async () => {
-    [, superAdmin, admin] = await ethers.getSigners();
+    [user, superAdmin, admin] = await ethers.getSigners();
     ongoingAirdropsFactory = (await ethers.getContractFactory(
       'solidity/contracts/test/OngoingAirdrops.sol:OngoingAirdropsMock'
     )) as OngoingAirdropsMock__factory;
@@ -134,6 +135,72 @@ describe('OngoingAirdrops', () => {
       params: [constants.HashZero, constants.HashZero, []],
       addressWithRole: () => admin,
       role: () => adminRole,
+    });
+  });
+
+  describe('claimAndSendToClaimee', () => {
+    const CAMPAIGN = randomHex(32);
+    const CLAIMEE = generateRandomAddress();
+    const TOKENS_AMOUNTS: IOngoingAirdrops.TokenAmountStruct[] = [
+      {
+        token: generateRandomAddress(),
+        amount: 1000,
+      },
+      {
+        token: generateRandomAddress(),
+        amount: 12469,
+      },
+    ];
+    const PROOF = [randomHex(32), randomHex(32)];
+    given(async () => {
+      await ongoingAirdrops.claimAndSendToClaimee(CAMPAIGN, CLAIMEE, TOKENS_AMOUNTS, PROOF);
+    });
+    it('calls internal claim with claimee and recipient as same address', async () => {
+      const internalClaimCall = await ongoingAirdrops.internalClaimCall();
+      const internalClaimCallTokensAmounts = await ongoingAirdrops.getInternalClaimCallTokensAmounts();
+      const internalClaimCallProof = await ongoingAirdrops.getInternalClaimCallProof();
+      expect(internalClaimCall.campaign).to.be.equal(CAMPAIGN);
+      expect(internalClaimCall.claimee).to.be.equal(CLAIMEE);
+      expect(internalClaimCall.recipient).to.be.equal(CLAIMEE);
+      expect(internalClaimCallProof).to.be.eql(PROOF);
+      expect(internalClaimCallTokensAmounts.length).to.be.equal(TOKENS_AMOUNTS.length);
+      internalClaimCallTokensAmounts.forEach((tokenAmount, i) => {
+        expect(tokenAmount.token).to.be.equal(TOKENS_AMOUNTS[i].token);
+        expect(tokenAmount.amount).to.be.equal(TOKENS_AMOUNTS[i].amount);
+      });
+    });
+  });
+
+  describe('claimAndTransfer', () => {
+    const CAMPAIGN = randomHex(32);
+    const RECIPIENT = generateRandomAddress();
+    const TOKENS_AMOUNTS: IOngoingAirdrops.TokenAmountStruct[] = [
+      {
+        token: generateRandomAddress(),
+        amount: 1000,
+      },
+      {
+        token: generateRandomAddress(),
+        amount: 12469,
+      },
+    ];
+    const PROOF = [randomHex(32), randomHex(32)];
+    given(async () => {
+      await ongoingAirdrops.claimAndTransfer(CAMPAIGN, TOKENS_AMOUNTS, RECIPIENT, PROOF);
+    });
+    it('calls internal claim with claimee as message sender and the correct recipient', async () => {
+      const internalClaimCall = await ongoingAirdrops.internalClaimCall();
+      const internalClaimCallTokensAmounts = await ongoingAirdrops.getInternalClaimCallTokensAmounts();
+      const internalClaimCallProof = await ongoingAirdrops.getInternalClaimCallProof();
+      expect(internalClaimCall.campaign).to.be.equal(CAMPAIGN);
+      expect(internalClaimCall.claimee).to.be.equal(user.address);
+      expect(internalClaimCall.recipient).to.be.equal(RECIPIENT);
+      expect(internalClaimCallProof).to.be.eql(PROOF);
+      expect(internalClaimCallTokensAmounts.length).to.be.equal(TOKENS_AMOUNTS.length);
+      internalClaimCallTokensAmounts.forEach((tokenAmount, i) => {
+        expect(tokenAmount.token).to.be.equal(TOKENS_AMOUNTS[i].token);
+        expect(tokenAmount.amount).to.be.equal(TOKENS_AMOUNTS[i].amount);
+      });
     });
   });
 
