@@ -27,10 +27,10 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
-    for (uint256 i = 0; i < _initialAdmins.length; ) {
-      _setupRole(ADMIN_ROLE, _initialAdmins[i]);
+    for (uint256 _i = 0; _i < _initialAdmins.length; ) {
+      _setupRole(ADMIN_ROLE, _initialAdmins[_i]);
       unchecked {
-        i++;
+        _i++;
       }
     }
   }
@@ -40,14 +40,14 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     bytes32 _campaign,
     bytes32 _root,
     TokenAmount[] calldata _tokensAllocation
-  ) external override onlyRole(ADMIN_ROLE) {
+  ) external onlyRole(ADMIN_ROLE) {
     if (_campaign == bytes32(0)) revert InvalidCampaign();
     if (_root == bytes32(0)) revert InvalidMerkleRoot();
     if (_tokensAllocation.length == 0) revert InvalidTokenAmount();
 
-    for (uint256 i = 0; i < _tokensAllocation.length; ) {
+    for (uint256 _i = 0; _i < _tokensAllocation.length; ) {
       // Move from calldata to memory
-      TokenAmount memory _tokenAllocation = _tokensAllocation[i];
+      TokenAmount memory _tokenAllocation = _tokensAllocation[_i];
 
       // Build our unique ID for campaign and token address.
       bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _tokenAllocation.token);
@@ -74,7 +74,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       _tokenAllocation.token.safeTransferFrom(msg.sender, address(this), _refillNeeded);
 
       unchecked {
-        i++;
+        _i++;
       }
     }
 
@@ -91,7 +91,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     address _claimee,
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
-  ) external override {}
+  ) external {}
 
   /// @inheritdoc IOngoingAirdrops
   function claimAndTransfer(
@@ -99,14 +99,38 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     TokenAmount[] calldata _tokensAmounts,
     address _recipient,
     bytes32[] calldata _proof
-  ) external override {}
+  ) external {}
 
   /// @inheritdoc IOngoingAirdrops
   function shutdown(
     bytes32 _campaign,
     IERC20[] calldata _tokens,
     address _recipient
-  ) external override returns (uint256[] memory _unclaimed) {}
+  ) external onlyRole(ADMIN_ROLE) returns (uint256[] memory _unclaimed) {
+    if (_recipient == address(0)) revert ZeroAddress();
+    _unclaimed = new uint256[](_tokens.length);
+    // We delete campaign setting it effectively to zero root, so users can't claim this campaign
+    delete roots[_campaign];
+    for (uint256 _i = 0; _i < _tokens.length; ) {
+      // Move from calldata to memory as an optimization
+      IERC20 _token = _tokens[_i];
+      // Build our unique ID for campaign and token address.
+      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _token);
+      // Understand how much is still available
+      _unclaimed[_i] = totalAirdroppedByCampaignAndToken[_campaignAndTokenId] - totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      // We remove unecessary data so we get a little bit of gas back
+      delete totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      delete totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
+      // Transfer it out to recipient
+      _token.safeTransfer(_recipient, _unclaimed[_i]);
+      // Lil optimization
+      unchecked {
+        _i++;
+      }
+    }
+
+    emit CampaignShutDown(_campaign, _tokens, _unclaimed, _recipient);
+  }
 
   function _getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token));
