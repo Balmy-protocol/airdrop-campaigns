@@ -30,6 +30,15 @@ function getEvents(receipt: TransactionReceipt): Event[] {
   return receipt.events;
 }
 
+export async function getArgsFromEvent<T>(response: TransactionResponse, eventName: string): Promise<any> {
+  const receipt = await response.wait();
+  for (const event of getEvents(receipt)) {
+    if (event.event === eventName) {
+      return event.args;
+    }
+  }
+}
+
 type Event = {
   event: string; // Event name
   args: any;

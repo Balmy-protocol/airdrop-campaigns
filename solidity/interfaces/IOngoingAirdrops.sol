@@ -92,7 +92,7 @@ interface IOngoingAirdrops {
    * @param campaignAndTokenId Id built by hashing concatenated values of: Campaign name and token address.
    * @return Sum of all airdropped amounts
    */
-  function totalAirdropedByCampaignAndToken(bytes32 campaignAndTokenId) external view returns (uint256);
+  function totalAirdroppedByCampaignAndToken(bytes32 campaignAndTokenId) external view returns (uint256);
 
   /**
    * @notice Total amount claimed of a given token and campaign.
