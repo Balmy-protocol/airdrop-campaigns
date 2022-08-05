@@ -27,10 +27,10 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
-    for (uint256 i = 0; i < _initialAdmins.length; ) {
-      _setupRole(ADMIN_ROLE, _initialAdmins[i]);
+    for (uint256 _i = 0; _i < _initialAdmins.length; ) {
+      _setupRole(ADMIN_ROLE, _initialAdmins[_i]);
       unchecked {
-        i++;
+        _i++;
       }
     }
   }
@@ -45,9 +45,9 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     if (_root == bytes32(0)) revert InvalidMerkleRoot();
     if (_tokensAllocation.length == 0) revert InvalidTokenAmount();
 
-    for (uint256 i = 0; i < _tokensAllocation.length; ) {
+    for (uint256 _i = 0; _i < _tokensAllocation.length; ) {
       // Move from calldata to memory
-      TokenAmount memory _tokenAllocation = _tokensAllocation[i];
+      TokenAmount memory _tokenAllocation = _tokensAllocation[_i];
 
       // Build our unique ID for campaign and token address.
       bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _tokenAllocation.token);
@@ -74,7 +74,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       _tokenAllocation.token.safeTransferFrom(msg.sender, address(this), _refillNeeded);
 
       unchecked {
-        i++;
+        _i++;
       }
     }
 
@@ -110,22 +110,22 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     _unclaimed = new uint256[](_tokens.length);
     // We delete campaign setting it effectively to zero root, so users can't claim this campaign
     delete roots[_campaign];
-    for (uint256 i = 0; i < _tokens.length; ) {
+    for (uint256 _i = 0; _i < _tokens.length; ) {
       // Move from calldata to memory as an optimization
-      IERC20 _token = _tokens[i];
+      IERC20 _token = _tokens[_i];
       // Build our unique ID for campaign and token address.
       bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _token);
       // Move var from storage to memory
       uint256 _totalAirdroppedByCampaignAndToken = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
       // Understand how much is still available
-      _unclaimed[i] = _totalAirdroppedByCampaignAndToken - totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      _unclaimed[_i] = _totalAirdroppedByCampaignAndToken - totalClaimedByCampaignAndToken[_campaignAndTokenId];
       // We update storage so if we call shutdown again we don't break token balances
       totalClaimedByCampaignAndToken[_campaignAndTokenId] = _totalAirdroppedByCampaignAndToken;
       // Transfer it out to recipient
-      _token.safeTransfer(_recipient, _unclaimed[i]);
+      _token.safeTransfer(_recipient, _unclaimed[_i]);
       // Lil optimization
       unchecked {
-        i++;
+        _i++;
       }
     }
 
