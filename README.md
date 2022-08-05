@@ -14,7 +14,7 @@ Instead of having to deploy multiple airdrop claiming smart contracts and making
 
 ## Ongoing campaigns
 
-Now the protocol wants to implement an on-going (not a one time) referral campaign that for one reason or another can not be calculated and / or distributed directly / instantly on-chain. Now, the protocol could still want the users to claim this off-chain calculated referral on-chain.
+Another potential use case would be if a protocol wants to implement an on-going (not a one time) referral campaign that for one reason or another cannot be calculated and / or distributed directly on-chain. Instead of having multiple claim contracts, this `OngoingAirdrops` contract can be used instead
 
 ## Technical details
 
