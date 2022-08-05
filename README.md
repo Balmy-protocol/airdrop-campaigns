@@ -24,7 +24,7 @@ Merkle root **should** be built by leaves, each of which will be representing a 
 
 `leaf(U, A) = leaf(U, A - 1) + ... + leaf(A, 1)`
 
-An exmaple: Let's say Alice had at one time `5 Tokens A` to claim, and now she will have `15 tokens A` to claim, her leaf on the updated root should be `20 tokens A`.
+An example: Let's say Alice was able to claim `5 Tokens A` for the first instance of a campaign, and now she is rewarded `15 tokens A` for the second instance. In this case, her leaf on the updated root should be `20 tokens A`.
 
 So, in order for on-going campaigns to not break we should always maintain one invariant: Whenever we update a campaign through `updateCampaign` the new token allocations should also always be the sum all of previous allocations, plus the new one.
 
