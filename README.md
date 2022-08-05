@@ -8,7 +8,7 @@ This repository holds the [OngoingAirdrops.sol](./solidity/contracts/OngoingAird
 
 ## Multiple campaigns
 
-Let's say a protocol wants to do a one-time referral reward in USDC for all users that have done some action. Additionally, this protocol wants to do a one-time airdrop of some loyalty token.
+Let's say a protocol wants to do a one-time referral reward in USDC for all users that have executed some action. Additionally, this protocol wants to do a one-time airdrop of some loyalty token.
 
 Instead of having to deploy multiple airdrop claiming smart contracts and making more difficult the task to maintain subgraphs, frontends, etc. they can now create both campaigns on this contract. One might be called `Best swappers` and the other one `Loyalty Program Q1`.
 
