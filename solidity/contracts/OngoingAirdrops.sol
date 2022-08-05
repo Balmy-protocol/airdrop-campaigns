@@ -116,10 +116,8 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       IERC20 _token = _tokens[_i];
       // Build our unique ID for campaign and token address.
       bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _token);
-      // Move var from storage to memory
-      uint256 _totalAirdroppedByCampaignAndToken = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
       // Understand how much is still available
-      _unclaimed[_i] = _totalAirdroppedByCampaignAndToken - totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      _unclaimed[_i] = totalAirdroppedByCampaignAndToken[_campaignAndTokenId] - totalClaimedByCampaignAndToken[_campaignAndTokenId];
       // We remove unecessary data so we get a little bit of gas back
       delete totalClaimedByCampaignAndToken[_campaignAndTokenId];
       delete totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
