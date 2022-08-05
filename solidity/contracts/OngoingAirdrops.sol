@@ -107,6 +107,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     IERC20[] calldata _tokens,
     address _recipient
   ) external onlyRole(ADMIN_ROLE) returns (uint256[] memory _unclaimed) {
+    if (_recipient == address(0)) revert ZeroAddress();
     _unclaimed = new uint256[](_tokens.length);
     // We delete campaign setting it effectively to zero root, so users can't claim this campaign
     delete roots[_campaign];

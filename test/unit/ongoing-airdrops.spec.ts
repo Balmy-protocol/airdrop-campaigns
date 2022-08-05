@@ -138,6 +138,15 @@ describe('OngoingAirdrops', () => {
   });
 
   describe('shutdown', () => {
+    when('sending zero address recipient', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(ongoingAirdrops.connect(admin).shutdown(constants.HashZero, [], constants.AddressZero)).to.be.revertedWithCustomError(
+          ongoingAirdrops,
+          'ZeroAddress'
+        );
+      });
+    });
+
     testShutdown({
       title: 'there is no claimed tokens',
       totalAirdropped: [100, 200, 300],
