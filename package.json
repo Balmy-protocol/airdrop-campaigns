@@ -1,22 +1,31 @@
 {
-  "name": "@mean-finance/subsidies",
+  "name": "@mean-finance/airdrop-campaigns",
   "version": "0.0.0",
-  "description": "Mean Finance's subsidies smart contracts and scripts",
+  "description": "Mean Finance's airdrop campaigns smart contracts and scripts",
   "keywords": [
     "ethereum",
     "smart",
     "contracts",
-    "mean finance"
+    "mean finance",
+    "airdrop",
+    "solidity",
+    "campaign",
+    "marketing",
+    "referral"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mean-finance/subsidies.git"
+    "url": "git+https://github.com/mean-finance/airdrop-campaigns.git"
   },
   "license": "AGPL-3.0-only",
   "contributors": [
     {
       "name": "0xged",
       "url": "https://github.com/0xged"
+    },
+    {
+      "name": "TheAustrian1998",
+      "url": "https://github.com/TheAustrian1998"
     }
   ],
   "files": [

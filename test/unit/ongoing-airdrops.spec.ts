@@ -205,6 +205,15 @@ describe('OngoingAirdrops', () => {
   });
 
   describe('shutdown', () => {
+    when('sending zero address recipient', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(ongoingAirdrops.connect(admin).shutdown(constants.HashZero, [], constants.AddressZero)).to.be.revertedWithCustomError(
+          ongoingAirdrops,
+          'ZeroAddress'
+        );
+      });
+    });
+
     testShutdown({
       title: 'there is no claimed tokens',
       totalAirdropped: [100, 200, 300],
@@ -296,7 +305,6 @@ describe('OngoingAirdrops', () => {
   }
 
   function testShutdown({ title, totalAirdropped, totalClaimed }: { title: string; totalAirdropped: number[]; totalClaimed: number[] }) {
-    // const root = randomHex(32);
     const campaign = randomHex(32);
     const unclaimed = totalAirdropped.map((airdropped, i) => airdropped - totalClaimed[i]);
     const recipient = generateRandomAddress();
@@ -309,27 +317,29 @@ describe('OngoingAirdrops', () => {
           await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, totalAirdropped[i]);
           await ongoingAirdrops.setTotalClaimedByCampaignAndToken(campaign, tokens[i].address, totalClaimed[i]);
           tokenAddresses.push(tokens[i].address);
-          // = tokens.slice(0, totalAirdropped.length).map(token => getAddress(token.address));
         }
         shutdownTx = await ongoingAirdrops.connect(admin).shutdown(campaign, tokenAddresses, recipient);
       });
       then('root is set to zero hash', async () => {
         expect(await ongoingAirdrops.roots(campaign)).to.be.equal(constants.HashZero);
       });
-      then('total claimed by campaign and token gets updated', async () => {
+      then('total claimed by campaign and token gets removed', async () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(
-            totalAirdropped[i]
-          );
+          expect(await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
+        }
+      });
+      then('total airdropped by campaign and token gets removed', async () => {
+        for (let i = 0; i < totalAirdropped.length; i++) {
+          expect(await ongoingAirdrops.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
         }
       });
       then('transfers out the correct amount to the recipient', () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(tokens[i].transfer).to.have.been.calledWith(recipient, unclaimed[i]);
+          expect(tokens[i].transfer).to.have.been.calledOnceWith(recipient, unclaimed[i]);
         }
       });
       then('emits event with correct information', async () => {
-        const transactionArgs = await getArgsFromEvent(shutdownTx, 'CampaignShutdDown');
+        const transactionArgs = await getArgsFromEvent(shutdownTx, 'CampaignShutDown');
         expect(transactionArgs.campaign).to.be.equal(campaign);
         expect(transactionArgs.tokens).to.be.eql(tokenAddresses);
         expect(transactionArgs.recipient).to.be.equal(recipient);

@@ -119,6 +119,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     IERC20[] calldata _tokens,
     address _recipient
   ) external onlyRole(ADMIN_ROLE) returns (uint256[] memory _unclaimed) {
+    if (_recipient == address(0)) revert ZeroAddress();
     _unclaimed = new uint256[](_tokens.length);
     // We delete campaign setting it effectively to zero root, so users can't claim this campaign
     delete roots[_campaign];
@@ -127,12 +128,11 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       IERC20 _token = _tokens[_i];
       // Build our unique ID for campaign and token address.
       bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _token);
-      // Move var from storage to memory
-      uint256 _totalAirdroppedByCampaignAndToken = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
       // Understand how much is still available
-      _unclaimed[_i] = _totalAirdroppedByCampaignAndToken - totalClaimedByCampaignAndToken[_campaignAndTokenId];
-      // We update storage so if we call shutdown again we don't break token balances
-      totalClaimedByCampaignAndToken[_campaignAndTokenId] = _totalAirdroppedByCampaignAndToken;
+      _unclaimed[_i] = totalAirdroppedByCampaignAndToken[_campaignAndTokenId] - totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      // We remove unecessary data so we get a little bit of gas back
+      delete totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      delete totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
       // Transfer it out to recipient
       _token.safeTransfer(_recipient, _unclaimed[_i]);
       // Lil optimization
@@ -141,7 +141,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       }
     }
 
-    emit CampaignShutdDown(_campaign, _tokens, _unclaimed, _recipient);
+    emit CampaignShutDown(_campaign, _tokens, _unclaimed, _recipient);
   }
 
   function _getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) internal pure returns (bytes32) {
