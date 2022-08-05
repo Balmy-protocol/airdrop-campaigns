@@ -5,9 +5,9 @@ import '../OngoingAirdrops.sol';
 
 contract OngoingAirdropsMock is OngoingAirdrops {
   struct InternalClaimCall {
-    bytes32 _campaign;
-    address _claimee;
-    address _recipient;
+    bytes32 campaign;
+    address claimee;
+    address recipient;
   }
 
   InternalClaimCall public internalClaimCall;
