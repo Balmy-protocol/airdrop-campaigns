@@ -58,7 +58,7 @@ interface IOngoingAirdrops {
    * @param unclaimed Amount of unclaimed tokens sent
    * @param recipient Address that will receive unclaimed tokens
    */
-  event CampaignShutdDown(bytes32 campaign, IERC20[] tokens, uint256[] unclaimed, address recipient);
+  event CampaignShutDown(bytes32 campaign, IERC20[] tokens, uint256[] unclaimed, address recipient);
 
   /**
    * @notice Emitted when a user claims a tranche.

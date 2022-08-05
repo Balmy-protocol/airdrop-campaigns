@@ -131,7 +131,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       }
     }
 
-    emit CampaignShutdDown(_campaign, _tokens, _unclaimed, _recipient);
+    emit CampaignShutDown(_campaign, _tokens, _unclaimed, _recipient);
   }
 
   function _getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) internal pure returns (bytes32) {

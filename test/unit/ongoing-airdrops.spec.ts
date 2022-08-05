@@ -274,7 +274,7 @@ describe('OngoingAirdrops', () => {
         }
       });
       then('emits event with correct information', async () => {
-        const transactionArgs = await getArgsFromEvent(shutdownTx, 'CampaignShutdDown');
+        const transactionArgs = await getArgsFromEvent(shutdownTx, 'CampaignShutDown');
         expect(transactionArgs.campaign).to.be.equal(campaign);
         expect(transactionArgs.tokens).to.be.eql(tokenAddresses);
         expect(transactionArgs.recipient).to.be.equal(recipient);
