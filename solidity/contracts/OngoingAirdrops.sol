@@ -119,8 +119,9 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       uint256 _totalAirdroppedByCampaignAndToken = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
       // Understand how much is still available
       _unclaimed[_i] = _totalAirdroppedByCampaignAndToken - totalClaimedByCampaignAndToken[_campaignAndTokenId];
-      // We update storage so if we call shutdown again we don't break token balances
-      totalClaimedByCampaignAndToken[_campaignAndTokenId] = _totalAirdroppedByCampaignAndToken;
+      // We remove unecessary data so we get a little bit of gas back
+      delete totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      delete totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
       // Transfer it out to recipient
       _token.safeTransfer(_recipient, _unclaimed[_i]);
       // Lil optimization

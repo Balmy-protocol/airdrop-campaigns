@@ -249,11 +249,14 @@ describe('OngoingAirdrops', () => {
       then('root is set to zero hash', async () => {
         expect(await ongoingAirdrops.roots(campaign)).to.be.equal(constants.HashZero);
       });
-      then('total claimed by campaign and token gets updated', async () => {
+      then('total claimed by campaign and token gets removed', async () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(
-            totalAirdropped[i]
-          );
+          expect(await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
+        }
+      });
+      then('total airdropped by campaign and token gets removed', async () => {
+        for (let i = 0; i < totalAirdropped.length; i++) {
+          expect(await ongoingAirdrops.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
         }
       });
       then('transfers out the correct amount to the recipient', () => {
