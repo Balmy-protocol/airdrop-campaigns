@@ -4,7 +4,7 @@
 
 # Ongoing airdrops / campaigns
 
-This repository holds the [OngoingAirdrops.sol](./solidity/contracts/OngoingAirdrops.sol) smart contract that is implemented to be able to handle multiple ongoing airdrops, also referred to as **campaigns**.
+This repository holds the [OngoingAirdrops.sol](./solidity/contracts/OngoingAirdrops.sol) smart contract. This contract is meant to handle multiple ongoing airdrops, also referred to as **campaigns**.
 
 ## Multiple campaigns
 
