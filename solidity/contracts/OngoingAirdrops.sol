@@ -111,7 +111,50 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     TokenAmount[] calldata _tokensAmounts,
     address _recipient,
     bytes32[] calldata _proof
-  ) internal virtual {}
+  ) internal virtual {
+    // Basic checks
+    if (_campaign == bytes32(0)) revert InvalidCampaign();
+    // TODO: Check for roots[_campaign] != 0?????
+    if (_claimee == address(0) || _recipient == address(0)) revert ZeroAddress();
+    if (_tokensAmounts.length == 0) revert InvalidTokenAmount();
+    if (_proof.length == 0) revert InvalidProof();
+
+    // Go through every token being claimed and apply check-effects-interaction per token.
+    bool _alreadyClaimed = true;
+    uint256[] memory _claimed = new uint256[](_tokensAmounts.length);
+    for (uint256 i = 0; i < _tokensAmounts.length; ) {
+      // Move calldata to memory
+      TokenAmount memory _tokenAmount = _tokensAmounts[i];
+      // Build our unique ID for campaign, token and user address.
+      bytes32 _campaignTokenAndUserId = _getIdOfCampaignTokenAndUser(_campaign, _tokenAmount.token, _claimee);
+      // Calculate to claim
+      _claimed[i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndUser[_campaignTokenAndUserId];
+      // It might happen that not all airdropped tokens were updated.
+      if (_claimed[i] > 0) {
+        if (_alreadyClaimed) _alreadyClaimed = false;
+        // Update the total amount claimed of the token and campaign for the user
+        amountClaimedByCampaignTokenAndUser[_campaignTokenAndUserId] = _tokenAmount.amount;
+        // Update the total claimed of a token on a campaign
+        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[i];
+        // Send the recipient the claimed tokens
+        _tokenAmount.token.safeTransfer(_recipient, _claimed[i]);
+      }
+      unchecked {
+        i++;
+      }
+    }
+
+    // If nothing was claimed, then we was alread claimed.
+    if (_alreadyClaimed) revert AlreadyClaimed();
+
+    // Validate the proof and leaf information
+    bytes32 _leaf = keccak256(abi.encodePacked(_claimee, _encode(_tokensAmounts)));
+    bool _isValidLeaf = MerkleProof.verify(_proof, roots[_campaign], _leaf);
+    if (!_isValidLeaf) revert InvalidProof();
+
+    // Emit event
+    emit Claimed(_campaign, msg.sender, _claimee, _tokensAmounts, _claimed, _recipient);
+  }
 
   /// @inheritdoc IOngoingAirdrops
   function shutdown(
@@ -146,5 +189,22 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
 
   function _getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token));
+  }
+
+  function _getIdOfCampaignTokenAndUser(
+    bytes32 _campaign,
+    IERC20 _token,
+    address _user
+  ) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(_campaign, _token, _user));
+  }
+
+  function _encode(TokenAmount[] calldata _tokenAmounts) internal pure returns (bytes memory _result) {
+    for (uint256 i; i < _tokenAmounts.length; ) {
+      _result = bytes.concat(_result, abi.encodePacked(_tokenAmounts[i].token, _tokenAmounts[i].amount));
+      unchecked {
+        i++;
+      }
+    }
   }
 }
