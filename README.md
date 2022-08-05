@@ -1,6 +1,6 @@
-[![Lint](https://github.com/Mean-Finance/subsidies/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/subsidies/actions/workflows/lint.yml)
-[![Tests](https://github.com/Mean-Finance/subsidies/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/subsidies/actions/workflows/tests.yml)
-[![Slither Analysis](https://github.com/Mean-Finance/subsidies/actions/workflows/slither.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/subsidies/actions/workflows/slither.yml)
+[![Lint](https://github.com/Mean-Finance/airdrop-campaigns/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/airdrop-campaigns/actions/workflows/lint.yml)
+[![Tests](https://github.com/Mean-Finance/airdrop-campaigns/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/airdrop-campaigns/actions/workflows/tests.yml)
+[![Slither Analysis](https://github.com/Mean-Finance/airdrop-campaigns/actions/workflows/slither.yml/badge.svg?branch=main)](https://github.com/Mean-Finance/airdrop-campaigns/actions/workflows/slither.yml)
 
 # Ongoing airdrops / campaigns
 
@@ -68,9 +68,9 @@ In order to derive the amount to be claimed by a user we use: `Claimable(U) = To
 
 The package will contain:
 
-- Artifacts can be found under `@mean-finance/subsidies/artifacts`
-- Compatible deployments for [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) plugin under the `@mean-finance/subsidies/deployments` folder.
-- Typescript smart contract typings under `@mean-finance/subsidies/typechained`
+- Artifacts can be found under `@mean-finance/airdrop-campaigns/artifacts`
+- Compatible deployments for [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) plugin under the `@mean-finance/airdrop-campaigns/deployments` folder.
+- Typescript smart contract typings under `@mean-finance/airdrop-campaigns/typechained`
 
 ## Documentation
 
@@ -83,11 +83,11 @@ To install with [**Hardhat**](https://github.com/nomiclabs/hardhat) or [**Truffl
 #### YARN
 
 ```sh
-yarn add @mean-finance/subsidies
+yarn add @mean-finance/airdrop-campaigns
 ```
 
 ### NPM
 
 ```sh
-npm install @mean-finance/subsidies
+npm install @mean-finance/airdrop-campaigns
 ```
