@@ -6,6 +6,8 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { Provider } from '@ethersproject/providers';
 import { getStatic } from 'ethers/lib/utils';
 import { wallet } from '.';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { given, when, then } from './bdd';
 
 chai.use(chaiAsPromised);
 
@@ -24,6 +26,32 @@ export const checkTxRevertedWithMessage = async ({
   } else {
     await expect(tx).to.be.revertedWith(message);
   }
+};
+
+export const checkTxRevertedWithCustomError = async ({
+  tx,
+  contract,
+  customErrorName,
+}: {
+  tx: Promise<TransactionResponse>;
+  contract: { interface: any };
+  customErrorName: string;
+}): Promise<void> => {
+  await expect(tx).to.be.revertedWithCustomError(contract, customErrorName);
+};
+
+export const deployShouldRevertWithCustomError = async ({
+  contract,
+  args,
+  customErrorName,
+}: {
+  contract: ContractFactory;
+  args: any[];
+  customErrorName: string;
+}): Promise<void> => {
+  const deployContractTx = await contract.getDeployTransaction(...args);
+  const tx = contract.signer.sendTransaction(deployContractTx);
+  await checkTxRevertedWithCustomError({ tx, contract, customErrorName });
 };
 
 export const checkTxRevertedWithZeroAddress = async (tx: Promise<TransactionResponse>): Promise<void> => {
@@ -181,23 +209,42 @@ export const txShouldSetVariableAndEmitEvent = async ({
   });
 };
 
-export const fnShouldOnlyBeCallableByGovernance = (
-  delayedContract: () => Contract,
-  fnName: string,
-  governance: Impersonator,
-  args: unknown[] | (() => unknown[])
-): void => {
-  it('should be callable by governance', () => {
-    return expect(callFunction(governance)).not.to.be.revertedWith('OnlyGovernance()');
+export const shouldBeExecutableOnlyByGovernor = ({
+  contract,
+  funcAndSignature,
+  params,
+  governor,
+}: {
+  contract: () => Contract;
+  funcAndSignature: string;
+  params?: any[] | (() => any[]);
+  governor: () => SignerWithAddress | Wallet;
+}) => {
+  let realParams: any[];
+  given(() => {
+    realParams = typeof params === 'function' ? params() : params ?? [];
   });
-
-  it('should not be callable by any address', async () => {
-    return expect(callFunction(await wallet.generateRandom())).to.be.revertedWith('OnlyGovernance()');
+  when('not called from governor', () => {
+    let onlyGovernorAllowedTx: Promise<TransactionResponse>;
+    given(async () => {
+      const notGovernor = await wallet.generateRandom();
+      onlyGovernorAllowedTx = contract()
+        .connect(notGovernor)
+        [funcAndSignature](...realParams!);
+    });
+    then('tx is reverted with reason', async () => {
+      await expect(onlyGovernorAllowedTx).to.be.revertedWithCustomError(contract(), 'OnlyGovernor');
+    });
   });
-
-  function callFunction(impersonator: Impersonator) {
-    const argsArray: unknown[] = typeof args === 'function' ? args() : args;
-    const fn = delayedContract().connect(impersonator)[fnName] as (...args: unknown[]) => unknown;
-    return fn(...argsArray);
-  }
+  when('called from governor', () => {
+    let onlyGovernorAllowedTx: Promise<TransactionResponse>;
+    given(async () => {
+      onlyGovernorAllowedTx = contract()
+        .connect(governor())
+        [funcAndSignature](...realParams!);
+    });
+    then('tx is not reverted or not reverted with reason only governor', async () => {
+      await expect(onlyGovernorAllowedTx).to.not.be.revertedWithCustomError(contract(), 'OnlyGovernor');
+    });
+  });
 };
