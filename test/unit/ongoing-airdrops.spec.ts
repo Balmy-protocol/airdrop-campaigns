@@ -159,9 +159,9 @@ describe('OngoingAirdrops', () => {
       const internalClaimCall = await ongoingAirdrops.internalClaimCall();
       const internalClaimCallTokensAmounts = await ongoingAirdrops.getInternalClaimCallTokensAmounts();
       const internalClaimCallProof = await ongoingAirdrops.getInternalClaimCallProof();
-      expect(internalClaimCall._campaign).to.be.equal(CAMPAIGN);
-      expect(internalClaimCall._claimee).to.be.equal(CLAIMEE);
-      expect(internalClaimCall._recipient).to.be.equal(CLAIMEE);
+      expect(internalClaimCall.campaign).to.be.equal(CAMPAIGN);
+      expect(internalClaimCall.claimee).to.be.equal(CLAIMEE);
+      expect(internalClaimCall.recipient).to.be.equal(CLAIMEE);
       expect(internalClaimCallProof).to.be.eql(PROOF);
       expect(internalClaimCallTokensAmounts.length).to.be.equal(TOKENS_AMOUNTS.length);
       internalClaimCallTokensAmounts.forEach((tokenAmount, i) => {
@@ -188,13 +188,13 @@ describe('OngoingAirdrops', () => {
     given(async () => {
       await ongoingAirdrops.claimAndTransfer(CAMPAIGN, TOKENS_AMOUNTS, RECIPIENT, PROOF);
     });
-    it('calls internal claim with claimee and recipient as same address', async () => {
+    it('calls internal claim with claimee as message sender and the correct recipient', async () => {
       const internalClaimCall = await ongoingAirdrops.internalClaimCall();
       const internalClaimCallTokensAmounts = await ongoingAirdrops.getInternalClaimCallTokensAmounts();
       const internalClaimCallProof = await ongoingAirdrops.getInternalClaimCallProof();
-      expect(internalClaimCall._campaign).to.be.equal(CAMPAIGN);
-      expect(internalClaimCall._claimee).to.be.equal(user.address);
-      expect(internalClaimCall._recipient).to.be.equal(RECIPIENT);
+      expect(internalClaimCall.campaign).to.be.equal(CAMPAIGN);
+      expect(internalClaimCall.claimee).to.be.equal(user.address);
+      expect(internalClaimCall.recipient).to.be.equal(RECIPIENT);
       expect(internalClaimCallProof).to.be.eql(PROOF);
       expect(internalClaimCallTokensAmounts.length).to.be.equal(TOKENS_AMOUNTS.length);
       internalClaimCallTokensAmounts.forEach((tokenAmount, i) => {
