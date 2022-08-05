@@ -238,7 +238,6 @@ describe('OngoingAirdrops', () => {
   }
 
   function testShutdown({ title, totalAirdropped, totalClaimed }: { title: string; totalAirdropped: number[]; totalClaimed: number[] }) {
-    // const root = randomHex(32);
     const campaign = randomHex(32);
     const unclaimed = totalAirdropped.map((airdropped, i) => airdropped - totalClaimed[i]);
     const recipient = generateRandomAddress();
@@ -251,7 +250,6 @@ describe('OngoingAirdrops', () => {
           await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, totalAirdropped[i]);
           await ongoingAirdrops.setTotalClaimedByCampaignAndToken(campaign, tokens[i].address, totalClaimed[i]);
           tokenAddresses.push(tokens[i].address);
-          // = tokens.slice(0, totalAirdropped.length).map(token => getAddress(token.address));
         }
         shutdownTx = await ongoingAirdrops.connect(admin).shutdown(campaign, tokenAddresses, recipient);
       });
@@ -270,7 +268,7 @@ describe('OngoingAirdrops', () => {
       });
       then('transfers out the correct amount to the recipient', () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(tokens[i].transfer).to.have.been.calledWith(recipient, unclaimed[i]);
+          expect(tokens[i].transfer).to.have.been.calledOnceWith(recipient, unclaimed[i]);
         }
       });
       then('emits event with correct information', async () => {
