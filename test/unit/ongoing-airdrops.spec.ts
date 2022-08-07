@@ -5,12 +5,14 @@ import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { takeSnapshot, SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers';
-import { BigNumber, constants, utils } from 'ethers';
+import { BigNumber, BigNumberish, constants, utils } from 'ethers';
 import { randomHex } from 'web3-utils';
 import { getArgsFromEvent } from '@utils/event-utils';
 import { behaviours } from '@utils';
 import { TransactionResponse } from '@ethersproject/providers';
 import { generateRandomAddress } from '@utils/wallet';
+import { createMerkleTree, getLeaf } from '@utils/merkle';
+import MerkleTree from 'merkletreejs';
 
 chai.use(smock.matchers);
 
@@ -204,6 +206,156 @@ describe('OngoingAirdrops', () => {
     });
   });
 
+  describe('_claim', () => {
+    when('sending an empty campaign', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(
+          ongoingAirdrops.claim(constants.HashZero, generateRandomAddress(), [], generateRandomAddress(), [])
+        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidCampaign');
+      });
+    });
+    when('claimee is zero address', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(ongoingAirdrops.claim(randomHex(32), constants.AddressZero, [], generateRandomAddress(), [])).to.be.revertedWithCustomError(
+          ongoingAirdrops,
+          'ZeroAddress'
+        );
+      });
+    });
+    when('recipient is zero address', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(ongoingAirdrops.claim(randomHex(32), generateRandomAddress(), [], constants.AddressZero, [])).to.be.revertedWithCustomError(
+          ongoingAirdrops,
+          'ZeroAddress'
+        );
+      });
+    });
+    when('sending empty tokens amounts', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(
+          ongoingAirdrops.claim(randomHex(32), generateRandomAddress(), [], generateRandomAddress(), [])
+        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidTokenAmount');
+      });
+    });
+    when('sending empty merkle proof', () => {
+      then('tx is reverted with custom error', async () => {
+        await expect(
+          ongoingAirdrops.claim(
+            randomHex(32),
+            generateRandomAddress(),
+            [{ token: generateRandomAddress(), amount: 1 }],
+            generateRandomAddress(),
+            []
+          )
+        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+      });
+    });
+    when('claiming from a random campaign with root zero', () => {
+      const campaign = randomHex(32);
+      let tokenAllocation: IOngoingAirdrops.TokenAmountStruct[];
+      given(async () => {
+        tokenAllocation = [{ token: tokens[0].address, amount: BigNumber.from('100') }];
+        await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokenAllocation[0].token, tokenAllocation[0].amount);
+      });
+      then('tx is reverted with custom error', async () => {
+        // Random proof for root zero
+        await expect(
+          ongoingAirdrops.claim(campaign, user.address, tokenAllocation, generateRandomAddress(), [randomHex(32)])
+        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+        // Hash zero for root zero
+        await expect(
+          ongoingAirdrops.claim(campaign, user.address, tokenAllocation, generateRandomAddress(), [constants.HashZero])
+        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+        // Having a valid proof for a root zero
+        const { tree, leaves } = createMerkleTree([user.address], [tokenAllocation]);
+        const leaf = getLeaf(user.address, tokenAllocation);
+        const proof = tree.getHexProof(leaf);
+        await expect(
+          ongoingAirdrops.claim(campaign, user.address, tokenAllocation, generateRandomAddress(), proof)
+        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+      });
+    });
+    when('all arguments are valid', () => {
+      let usersAllocations: IOngoingAirdrops.TokenAmountStruct[][];
+      let tree: MerkleTree;
+      let leaves: string[];
+      let campaignTokens: FakeContract<IERC20>[];
+      const campaign = ethers.utils.formatBytes32String('my-campaign');
+      const users = [generateRandomAddress(), generateRandomAddress(), generateRandomAddress()];
+      const allocations = [
+        [10, 10],
+        [0, 5],
+        [50, 23],
+      ];
+      given(async () => {
+        campaignTokens = tokens.slice(0, 2);
+        ({ usersAllocations, tree, leaves } = await updateCampaign({
+          campaign,
+          users,
+          tokens: campaignTokens,
+          allocations,
+        }));
+      });
+      context('and user had already claimed', () => {
+        given(async () => {
+          await ongoingAirdrops.claim(campaign, users[0], usersAllocations[0], generateRandomAddress(), tree.getHexProof(leaves[0]));
+        });
+        then('tx is reverted with custom error', async () => {
+          await expect(
+            ongoingAirdrops.claim(campaign, users[0], usersAllocations[0], generateRandomAddress(), tree.getHexProof(leaves[0]))
+          ).to.be.revertedWithCustomError(ongoingAirdrops, 'AlreadyClaimed');
+        });
+      });
+      context('and user has something to claim', () => {
+        let claimTx: TransactionResponse;
+        const RECIPIENT = generateRandomAddress();
+        given(async () => {
+          claimTx = await ongoingAirdrops.claim(campaign, users[0], usersAllocations[0], RECIPIENT, tree.getHexProof(leaves[0]));
+        });
+        then('total amount claimed by campaign, token and user is updated', async () => {
+          for (let i = 0; i < campaignTokens.length; i++) {
+            expect(
+              await ongoingAirdrops.amountClaimedByCampaignTokenAndClaimee(
+                getIdOfCampaignUserAndToken(campaign, campaignTokens[i].address, users[0])
+              )
+            ).to.be.equal(usersAllocations[0][i].amount);
+          }
+        });
+        then('total claimed by campaign and token is updated', async () => {
+          for (let i = 0; i < campaignTokens.length; i++) {
+            expect(
+              await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, campaignTokens[i].address))
+            ).to.be.equal(usersAllocations[0][i].amount);
+          }
+        });
+        then('sends correct amount of tokens to recipient', async () => {
+          for (let i = 0; i < campaignTokens.length; i++) {
+            const [to, amount] = campaignTokens[i].transfer.getCall(0).args;
+            expect(to).to.be.equal(RECIPIENT);
+            expect(amount).to.be.equal(usersAllocations[0][i].amount);
+          }
+        });
+        then('emits event with correct information', async () => {
+          const args = await getArgsFromEvent(claimTx, 'Claimed');
+          expect(args.campaign).to.be.equal(campaign);
+          expect(args.initiator).to.be.equal(user.address);
+          expect(args.claimee).to.be.equal(users[0]);
+          expect(args.recipient).to.be.equal(RECIPIENT);
+          expect(args.tokensAmount.length).to.be.equal(usersAllocations[0].length);
+          for (let i = 0; i < args.tokensAmount.length; i++) {
+            expect(args.tokensAmount[i].token).to.be.equal(usersAllocations[0][i].token);
+            expect(args.tokensAmount[i].amount).to.be.equal(usersAllocations[0][i].amount);
+          }
+          expect(args.claimed.length).to.be.equal(allocations[0].length);
+          for (let i = 0; i < args.claimed.length; i++) {
+            expect(args.claimed[i]).to.be.equal(allocations[0][i]);
+            expect(args.claimed[i]).to.be.equal(allocations[0][i]);
+          }
+        });
+      });
+    });
+  });
+
   describe('shutdown', () => {
     when('sending zero address recipient', () => {
       then('tx is reverted with custom error', async () => {
@@ -349,6 +501,48 @@ describe('OngoingAirdrops', () => {
         }
       });
     });
+  }
+
+  async function updateCampaign({
+    campaign,
+    users,
+    tokens,
+    allocations,
+  }: {
+    campaign: string;
+    users: string[];
+    tokens: FakeContract<IERC20>[];
+    allocations: BigNumberish[][];
+  }) {
+    const tokenAddresses = tokens.map((token) => token.address);
+    const usersAllocations: IOngoingAirdrops.TokenAmountStruct[][] = users.map((_, i) =>
+      tokenAddresses.map((token, j) => {
+        return {
+          token,
+          amount: allocations[i][j],
+        };
+      })
+    );
+    const { tree, leaves } = createMerkleTree(users, usersAllocations);
+    const root = tree.getHexRoot();
+    const totalAllocations = tokenAddresses.map((token, i) => {
+      const totalAllocation = allocations.reduce((prevValue, currentValue) => prevValue.add(currentValue[i]), constants.Zero);
+      return {
+        token,
+        amount: totalAllocation,
+      };
+    });
+    await ongoingAirdrops.connect(admin).updateCampaign(campaign, root, totalAllocations);
+    return {
+      usersAllocations,
+      tree,
+      leaves,
+      root,
+    };
+  }
+
+  function getIdOfCampaignUserAndToken(campaign: string, tokenAddress: string, userAddress: string): string {
+    return ethers.utils.keccak256(`${campaign}${tokenAddress.slice(2)}${userAddress.slice(2)}`);
   }
 
   function getIdOfCampaignAndToken(campaign: string, tokenAddress: string): string {

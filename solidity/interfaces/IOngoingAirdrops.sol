@@ -82,10 +82,10 @@ interface IOngoingAirdrops {
   /**
    * @notice Exposes token amount claimed by user on a given campaign
    * @dev This value cannot be modified
-   * @param campaignTokenAndUserId Id built by hashing concatenated values of: Campaign name, token address and user address.
+   * @param campaignTokenAndClaimeeId Id built by hashing concatenated values of: Campaign name, token address and user address.
    * @return Amount claimed
    */
-  function amountClaimedByCampaignTokenAndUser(bytes32 campaignTokenAndUserId) external view returns (uint256);
+  function amountClaimedByCampaignTokenAndClaimee(bytes32 campaignTokenAndClaimeeId) external view returns (uint256);
 
   /**
    * @notice Total sum of all airdropped amounts of a given token and campaign.
