@@ -60,7 +60,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       if (_tokenAllocation.amount < _currentTotalAirdropped) revert InvalidTokenAmount();
 
       // Refill needed represents the amount of tokens needed to
-      // transfer into the contract to allow every user to claim the updated rewards
+      // transfer into the contract to allow every claimee to claim the updated rewards
       uint256 _refillNeeded;
       // We can use unchecked, since we have checked this in L57
       unchecked {
@@ -114,37 +114,36 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
   ) internal virtual {
     // Basic checks
     if (_campaign == bytes32(0)) revert InvalidCampaign();
-    if (_claimee == address(0) || _recipient == address(0)) revert ZeroAddress();
-    if (_tokensAmounts.length == 0) revert InvalidTokenAmount();
+    if (_recipient == address(0)) revert ZeroAddress();
     if (_proof.length == 0) revert InvalidProof();
 
     // Go through every token being claimed and apply check-effects-interaction per token.
-    bool _alreadyClaimed = true;
+    bool _somethingWasClaimed = false;
     uint256[] memory _claimed = new uint256[](_tokensAmounts.length);
-    for (uint256 i = 0; i < _tokensAmounts.length; ) {
+    for (uint256 _i = 0; _i < _tokensAmounts.length; ) {
       // Move calldata to memory
-      TokenAmount memory _tokenAmount = _tokensAmounts[i];
-      // Build our unique ID for campaign, token and user address.
-      bytes32 _campaignTokenAndUserId = _getIdOfCampaignTokenAndUser(_campaign, _tokenAmount.token, _claimee);
+      TokenAmount memory _tokenAmount = _tokensAmounts[_i];
+      // Build our unique ID for campaign, token and claimee address.
+      bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
       // Calculate to claim
-      _claimed[i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndUserId];
+      _claimed[_i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId];
       // It might happen that not all airdropped tokens were updated.
-      if (_claimed[i] > 0) {
-        if (_alreadyClaimed) _alreadyClaimed = false;
-        // Update the total amount claimed of the token and campaign for the user
-        amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndUserId] = _tokenAmount.amount;
+      if (_claimed[_i] > 0) {
+        if (!_somethingWasClaimed) _somethingWasClaimed = true;
+        // Update the total amount claimed of the token and campaign for the claimee
+        amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId] = _tokenAmount.amount;
         // Update the total claimed of a token on a campaign
-        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[i];
+        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[_i];
         // Send the recipient the claimed tokens
-        _tokenAmount.token.safeTransfer(_recipient, _claimed[i]);
+        _tokenAmount.token.safeTransfer(_recipient, _claimed[_i]);
       }
       unchecked {
-        i++;
+        _i++;
       }
     }
 
-    // If nothing was claimed, then we was alread claimed.
-    if (_alreadyClaimed) revert AlreadyClaimed();
+    // If nothing was claimed, then it was already claimed.
+    if (!_somethingWasClaimed) revert AlreadyClaimed();
 
     // Validate the proof and leaf information
     bytes32 _leaf = keccak256(abi.encodePacked(_claimee, _encode(_tokensAmounts)));
@@ -190,12 +189,12 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     return keccak256(abi.encodePacked(_campaign, _token));
   }
 
-  function _getIdOfCampaignTokenAndUser(
+  function _getIdOfCampaignTokenAndClaimee(
     bytes32 _campaign,
     IERC20 _token,
-    address _user
+    address _claimee
   ) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(_campaign, _token, _user));
+    return keccak256(abi.encodePacked(_campaign, _token, _claimee));
   }
 
   function _encode(TokenAmount[] calldata _tokenAmounts) internal pure returns (bytes memory _result) {

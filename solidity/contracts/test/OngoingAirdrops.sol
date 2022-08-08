@@ -62,7 +62,7 @@ contract OngoingAirdropsMock is OngoingAirdrops {
     internalClaimCall = InternalClaimCall(_campaign, _claimee, _recipient);
   }
 
-  function claim(
+  function internalClaim(
     bytes32 _campaign,
     address _claimee,
     TokenAmount[] calldata _tokensAmounts,
