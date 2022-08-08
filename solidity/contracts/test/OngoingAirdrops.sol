@@ -4,13 +4,7 @@ pragma solidity >=0.8.7 <0.9.0;
 import '../OngoingAirdrops.sol';
 
 contract OngoingAirdropsMock is OngoingAirdrops {
-  struct InternalClaimCall {
-    bytes32 campaign;
-    address claimee;
-    address recipient;
-  }
-
-  InternalClaimCall public internalClaimCall;
+  ClaimParams public internalClaimCall;
   TokenAmount[] internal _internalClaimCallTokensAmounts;
   bytes32[] internal _internalClaimCallProof;
 
@@ -47,10 +41,8 @@ contract OngoingAirdropsMock is OngoingAirdrops {
   }
 
   function _claim(
-    bytes32 _campaign,
-    address _claimee,
+    ClaimParams memory _internalClaimCall,
     TokenAmount[] calldata _tokensAmounts,
-    address _recipient,
     bytes32[] calldata _proof
   ) internal override {
     for (uint256 i = 0; i < _tokensAmounts.length; i++) {
@@ -59,16 +51,14 @@ contract OngoingAirdropsMock is OngoingAirdrops {
     for (uint256 i = 0; i < _proof.length; i++) {
       _internalClaimCallProof.push(_proof[i]);
     }
-    internalClaimCall = InternalClaimCall(_campaign, _claimee, _recipient);
+    internalClaimCall = _internalClaimCall;
   }
 
   function internalClaim(
-    bytes32 _campaign,
-    address _claimee,
+    ClaimParams calldata _misc,
     TokenAmount[] calldata _tokensAmounts,
-    address _recipient,
     bytes32[] calldata _proof
   ) external {
-    super._claim(_campaign, _claimee, _tokensAmounts, _recipient, _proof);
+    super._claim(_misc, _tokensAmounts, _proof);
   }
 }

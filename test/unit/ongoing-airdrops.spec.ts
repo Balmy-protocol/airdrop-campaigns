@@ -210,14 +210,18 @@ describe('OngoingAirdrops', () => {
     when('sending an empty campaign', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingAirdrops.internalClaim(constants.HashZero, generateRandomAddress(), [], generateRandomAddress(), [])
+          ongoingAirdrops.internalClaim(
+            { campaign: constants.HashZero, recipient: generateRandomAddress(), claimee: generateRandomAddress() },
+            [],
+            []
+          )
         ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidCampaign');
       });
     });
     when('recipient is zero address', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingAirdrops.internalClaim(randomHex(32), generateRandomAddress(), [], constants.AddressZero, [])
+          ongoingAirdrops.internalClaim({ campaign: randomHex(32), recipient: constants.AddressZero, claimee: generateRandomAddress() }, [], [])
         ).to.be.revertedWithCustomError(ongoingAirdrops, 'ZeroAddress');
       });
     });
@@ -225,10 +229,8 @@ describe('OngoingAirdrops', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
           ongoingAirdrops.internalClaim(
-            randomHex(32),
-            generateRandomAddress(),
+            { campaign: randomHex(32), recipient: generateRandomAddress(), claimee: generateRandomAddress() },
             [{ token: generateRandomAddress(), amount: 1 }],
-            generateRandomAddress(),
             []
           )
         ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
@@ -244,18 +246,41 @@ describe('OngoingAirdrops', () => {
       then('tx is reverted with custom error', async () => {
         // Random proof for root zero
         await expect(
-          ongoingAirdrops.internalClaim(campaign, user.address, tokenAllocation, generateRandomAddress(), [randomHex(32)])
+          ongoingAirdrops.internalClaim(
+            {
+              campaign,
+              claimee: user.address,
+              recipient: generateRandomAddress(),
+            },
+            tokenAllocation,
+            [randomHex(32)]
+          )
         ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
         // Hash zero for root zero
         await expect(
-          ongoingAirdrops.internalClaim(campaign, user.address, tokenAllocation, generateRandomAddress(), [constants.HashZero])
+          ongoingAirdrops.internalClaim(
+            {
+              campaign,
+              claimee: user.address,
+              recipient: generateRandomAddress(),
+            },
+            tokenAllocation,
+            [constants.HashZero]
+          )
         ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
         // Having a valid proof for a root zero
         const { tree, leaves } = createMerkleTree([user.address], [tokenAllocation]);
-        const leaf = getLeaf(user.address, tokenAllocation);
-        const proof = tree.getHexProof(leaf);
+        const proof = tree.getHexProof(leaves[0]);
         await expect(
-          ongoingAirdrops.internalClaim(campaign, user.address, tokenAllocation, generateRandomAddress(), proof)
+          ongoingAirdrops.internalClaim(
+            {
+              campaign,
+              claimee: user.address,
+              recipient: generateRandomAddress(),
+            },
+            tokenAllocation,
+            proof
+          )
         ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
       });
     });
@@ -283,16 +308,26 @@ describe('OngoingAirdrops', () => {
       context('and claimee had already claimed', () => {
         given(async () => {
           await ongoingAirdrops.internalClaim(
-            campaign,
-            claimees[0],
+            {
+              campaign,
+              claimee: claimees[0],
+              recipient: generateRandomAddress(),
+            },
             claimeesAllocations[0],
-            generateRandomAddress(),
             tree.getHexProof(leaves[0])
           );
         });
         then('tx is reverted with custom error', async () => {
           await expect(
-            ongoingAirdrops.internalClaim(campaign, claimees[0], claimeesAllocations[0], generateRandomAddress(), tree.getHexProof(leaves[0]))
+            ongoingAirdrops.internalClaim(
+              {
+                campaign,
+                claimee: claimees[0],
+                recipient: generateRandomAddress(),
+              },
+              claimeesAllocations[0],
+              tree.getHexProof(leaves[0])
+            )
           ).to.be.revertedWithCustomError(ongoingAirdrops, 'AlreadyClaimed');
         });
       });
@@ -300,7 +335,15 @@ describe('OngoingAirdrops', () => {
         let claimTx: TransactionResponse;
         const RECIPIENT = generateRandomAddress();
         given(async () => {
-          claimTx = await ongoingAirdrops.internalClaim(campaign, claimees[0], claimeesAllocations[0], RECIPIENT, tree.getHexProof(leaves[0]));
+          claimTx = await ongoingAirdrops.internalClaim(
+            {
+              campaign,
+              claimee: claimees[0],
+              recipient: RECIPIENT,
+            },
+            claimeesAllocations[0],
+            tree.getHexProof(leaves[0])
+          );
         });
         then('total amount claimed by campaign, token and claimee is updated', async () => {
           for (let i = 0; i < campaignTokens.length; i++) {

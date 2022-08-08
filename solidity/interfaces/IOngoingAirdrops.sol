@@ -22,6 +22,16 @@ interface IOngoingAirdrops {
     uint256 amount;
   }
 
+  /**
+   * @notice ClaimParams
+   * @dev Struct that will be used for the internal claim call.
+   */
+  struct ClaimParams {
+    bytes32 campaign;
+    address claimee;
+    address recipient;
+  }
+
   /// @notice Thrown when a campaign is invalid, or zero bytes.
   error InvalidCampaign();
 
