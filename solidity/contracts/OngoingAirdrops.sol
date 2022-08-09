@@ -92,7 +92,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
   ) external {
-    _claim(_campaign, _claimee, _tokensAmounts, _claimee, _proof);
+    _claim(ClaimParams({campaign: _campaign, claimee: _claimee, recipient: _claimee}), _tokensAmounts, _proof);
   }
 
   /// @inheritdoc IOngoingAirdrops
@@ -102,20 +102,23 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     address _recipient,
     bytes32[] calldata _proof
   ) external {
-    _claim(_campaign, msg.sender, _tokensAmounts, _recipient, _proof);
+    _claim(ClaimParams({campaign: _campaign, claimee: msg.sender, recipient: _recipient}), _tokensAmounts, _proof);
   }
 
   function _claim(
-    bytes32 _campaign,
-    address _claimee,
+    ClaimParams memory _claimParams,
     TokenAmount[] calldata _tokensAmounts,
-    address _recipient,
     bytes32[] calldata _proof
   ) internal virtual {
     // Basic checks
-    if (_campaign == bytes32(0)) revert InvalidCampaign();
-    if (_recipient == address(0)) revert ZeroAddress();
+    if (_claimParams.campaign == bytes32(0)) revert InvalidCampaign();
+    if (_claimParams.recipient == address(0)) revert ZeroAddress();
     if (_proof.length == 0) revert InvalidProof();
+
+    // Validate the proof and leaf information
+    bytes32 _leaf = keccak256(abi.encodePacked(_claimParams.claimee, _encode(_tokensAmounts)));
+    bool _isValidLeaf = MerkleProof.verify(_proof, roots[_claimParams.campaign], _leaf);
+    if (!_isValidLeaf) revert InvalidProof();
 
     // Go through every token being claimed and apply check-effects-interaction per token.
     bool _somethingWasClaimed = false;
@@ -124,7 +127,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
       // Move calldata to memory
       TokenAmount memory _tokenAmount = _tokensAmounts[_i];
       // Build our unique ID for campaign, token and claimee address.
-      bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
+      bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_claimParams.campaign, _tokenAmount.token, _claimParams.claimee);
       // Calculate to claim
       _claimed[_i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId];
       // It might happen that not all airdropped tokens were updated.
@@ -133,9 +136,9 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
         // Update the total amount claimed of the token and campaign for the claimee
         amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId] = _tokenAmount.amount;
         // Update the total claimed of a token on a campaign
-        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[_i];
+        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_claimParams.campaign, _tokenAmount.token)] += _claimed[_i];
         // Send the recipient the claimed tokens
-        _tokenAmount.token.safeTransfer(_recipient, _claimed[_i]);
+        _tokenAmount.token.safeTransfer(_claimParams.recipient, _claimed[_i]);
       }
       unchecked {
         _i++;
@@ -145,13 +148,8 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     // If nothing was claimed, then it was already claimed.
     if (!_somethingWasClaimed) revert AlreadyClaimed();
 
-    // Validate the proof and leaf information
-    bytes32 _leaf = keccak256(abi.encodePacked(_claimee, _encode(_tokensAmounts)));
-    bool _isValidLeaf = MerkleProof.verify(_proof, roots[_campaign], _leaf);
-    if (!_isValidLeaf) revert InvalidProof();
-
     // Emit event
-    emit Claimed(_campaign, msg.sender, _claimee, _tokensAmounts, _claimed, _recipient);
+    emit Claimed(_claimParams, msg.sender, _tokensAmounts, _claimed);
   }
 
   /// @inheritdoc IOngoingAirdrops
