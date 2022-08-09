@@ -370,10 +370,10 @@ describe('OngoingAirdrops', () => {
         });
         then('emits event with correct information', async () => {
           const args = await getArgsFromEvent(claimTx, 'Claimed');
-          expect(args.campaign).to.be.equal(campaign);
+          expect(args.claimParams.campaign).to.be.equal(campaign);
+          expect(args.claimParams.claimee).to.be.equal(claimees[0]);
+          expect(args.claimParams.recipient).to.be.equal(RECIPIENT);
           expect(args.initiator).to.be.equal(user.address);
-          expect(args.claimee).to.be.equal(claimees[0]);
-          expect(args.recipient).to.be.equal(RECIPIENT);
           expect(args.tokensAmount.length).to.be.equal(claimeesAllocations[0].length);
           for (let i = 0; i < args.tokensAmount.length; i++) {
             expect(args.tokensAmount[i].token).to.be.equal(claimeesAllocations[0][i].token);

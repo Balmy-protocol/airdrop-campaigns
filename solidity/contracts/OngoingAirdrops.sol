@@ -149,7 +149,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     if (!_somethingWasClaimed) revert AlreadyClaimed();
 
     // Emit event
-    emit Claimed(_claimParams.campaign, msg.sender, _claimParams.claimee, _tokensAmounts, _claimed, _claimParams.recipient);
+    emit Claimed(_claimParams, msg.sender, _tokensAmounts, _claimed);
   }
 
   /// @inheritdoc IOngoingAirdrops

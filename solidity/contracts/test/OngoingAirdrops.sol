@@ -55,10 +55,10 @@ contract OngoingAirdropsMock is OngoingAirdrops {
   }
 
   function internalClaim(
-    ClaimParams calldata _misc,
+    ClaimParams calldata _claimParams,
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
   ) external {
-    super._claim(_misc, _tokensAmounts, _proof);
+    super._claim(_claimParams, _tokensAmounts, _proof);
   }
 }

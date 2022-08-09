@@ -72,14 +72,15 @@ interface IOngoingAirdrops {
 
   /**
    * @notice Emitted when a user claims a tranche.
-   * @param campaign Campaign being claimed
+   * @param claimParams Will hold:
+   *  - campaign Campaign being claimed
+   *  - claimee Address of the person claiming the airdrop
+   *  - recipient Address that will receive the tokens being claimed
    * @param initiator Address of the person initiating the claim
-   * @param claimee Address of the person claiming the airdrop
    * @param tokensAmount Tokens and amounts being used to get leaf
    * @param claimed Total amount of claimed tokens where token claimed = tokensAmount[index].token
-   * @param recipient Address that will receive the tokens being claimed
    */
-  event Claimed(bytes32 campaign, address initiator, address claimee, TokenAmount[] tokensAmount, uint256[] claimed, address recipient);
+  event Claimed(ClaimParams claimParams, address initiator, TokenAmount[] tokensAmount, uint256[] claimed);
 
   /**
    * @notice Exposes campaign's merkle root used to prove user claims
