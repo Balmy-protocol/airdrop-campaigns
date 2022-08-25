@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
-import '../interfaces/IOngoingAirdrops.sol';
+import '../interfaces/IOngoingCampaigns.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
-contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
+contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
   using SafeERC20 for IERC20;
 
   bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   mapping(bytes32 => bytes32) public roots;
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   mapping(bytes32 => uint256) public amountClaimedByCampaignTokenAndClaimee;
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   mapping(bytes32 => uint256) public totalAirdroppedByCampaignAndToken;
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   mapping(bytes32 => uint256) public totalClaimedByCampaignAndToken;
 
   constructor(address _superAdmin, address[] memory _initialAdmins) {
@@ -35,7 +35,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     }
   }
 
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   function updateCampaign(
     bytes32 _campaign,
     bytes32 _root,
@@ -85,7 +85,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     emit CampaignUpdated(_campaign, _root, _tokensAllocation);
   }
 
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   function claimAndSendToClaimee(
     bytes32 _campaign,
     address _claimee,
@@ -95,7 +95,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     _claim(ClaimParams({campaign: _campaign, claimee: _claimee, recipient: _claimee}), _tokensAmounts, _proof);
   }
 
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   function claimAndTransfer(
     bytes32 _campaign,
     TokenAmount[] calldata _tokensAmounts,
@@ -152,7 +152,7 @@ contract OngoingAirdrops is AccessControl, IOngoingAirdrops {
     emit Claimed(_claimParams, msg.sender, _tokensAmounts, _claimed);
   }
 
-  /// @inheritdoc IOngoingAirdrops
+  /// @inheritdoc IOngoingCampaigns
   function shutdown(
     bytes32 _campaign,
     IERC20[] calldata _tokens,

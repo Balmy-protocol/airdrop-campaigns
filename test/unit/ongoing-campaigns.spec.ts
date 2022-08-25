@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import { when, then, given } from '@utils/bdd';
-import { IERC20, IOngoingAirdrops, OngoingAirdropsMock, OngoingAirdropsMock__factory } from '@typechained';
+import { IERC20, IOngoingCampaigns, OngoingCampaignsMock, OngoingCampaignsMock__factory } from '@typechained';
 import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { smock, FakeContract } from '@defi-wonderland/smock';
@@ -16,11 +16,11 @@ import MerkleTree from 'merkletreejs';
 
 chai.use(smock.matchers);
 
-describe('OngoingAirdrops', () => {
+describe('OngoingCampaigns', () => {
   let user: SignerWithAddress;
   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
-  let ongoingAirdropsFactory: OngoingAirdropsMock__factory;
-  let ongoingAirdrops: OngoingAirdropsMock;
+  let ongoingCampaignsFactory: OngoingCampaignsMock__factory;
+  let ongoingCampaigns: OngoingCampaignsMock;
   let superAdminRole: string, adminRole: string;
   let snapshot: SnapshotRestorer;
 
@@ -28,14 +28,14 @@ describe('OngoingAirdrops', () => {
 
   before('Setup accounts and contracts', async () => {
     [user, superAdmin, admin] = await ethers.getSigners();
-    ongoingAirdropsFactory = (await ethers.getContractFactory(
-      'solidity/contracts/test/OngoingAirdrops.sol:OngoingAirdropsMock'
-    )) as OngoingAirdropsMock__factory;
+    ongoingCampaignsFactory = (await ethers.getContractFactory(
+      'solidity/contracts/test/OngoingCampaigns.sol:OngoingCampaignsMock'
+    )) as OngoingCampaignsMock__factory;
     for (let i = 0; i < 10; i++) {
       tokens.push(await smock.fake('IERC20'));
     }
-    ongoingAirdrops = await ongoingAirdropsFactory.deploy(superAdmin.address, [admin.address]);
-    [superAdminRole, adminRole] = await Promise.all([ongoingAirdrops.SUPER_ADMIN_ROLE(), ongoingAirdrops.ADMIN_ROLE()]);
+    ongoingCampaigns = await ongoingCampaignsFactory.deploy(superAdmin.address, [admin.address]);
+    [superAdminRole, adminRole] = await Promise.all([ongoingCampaigns.SUPER_ADMIN_ROLE(), ongoingCampaigns.ADMIN_ROLE()]);
     snapshot = await takeSnapshot();
   });
 
@@ -53,7 +53,7 @@ describe('OngoingAirdrops', () => {
     when('super admin is zero address', () => {
       then('tx is reverted with custom error', async () => {
         await behaviours.deployShouldRevertWithCustomError({
-          contract: ongoingAirdropsFactory,
+          contract: ongoingCampaignsFactory,
           args: [constants.AddressZero, []],
           customErrorName: 'ZeroAddress',
         });
@@ -61,19 +61,19 @@ describe('OngoingAirdrops', () => {
     });
     when('all arguments are valid', () => {
       then('super admin is set correctly', async () => {
-        const hasRole = await ongoingAirdrops.hasRole(superAdminRole, superAdmin.address);
+        const hasRole = await ongoingCampaigns.hasRole(superAdminRole, superAdmin.address);
         expect(hasRole).to.be.true;
       });
       then('initial admins are set correctly', async () => {
-        const hasRole = await ongoingAirdrops.hasRole(adminRole, admin.address);
+        const hasRole = await ongoingCampaigns.hasRole(adminRole, admin.address);
         expect(hasRole).to.be.true;
       });
       then('super admin role is set as super admin role', async () => {
-        const admin = await ongoingAirdrops.getRoleAdmin(superAdminRole);
+        const admin = await ongoingCampaigns.getRoleAdmin(superAdminRole);
         expect(admin).to.equal(superAdminRole);
       });
       then('super admin role is set as admin role', async () => {
-        const admin = await ongoingAirdrops.getRoleAdmin(adminRole);
+        const admin = await ongoingCampaigns.getRoleAdmin(adminRole);
         expect(admin).to.equal(superAdminRole);
       });
     });
@@ -82,24 +82,24 @@ describe('OngoingAirdrops', () => {
   describe('updateCampaign', () => {
     when('sending an empty campaign', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(ongoingAirdrops.connect(admin).updateCampaign(constants.HashZero, randomHex(32), [])).to.be.revertedWithCustomError(
-          ongoingAirdrops,
+        await expect(ongoingCampaigns.connect(admin).updateCampaign(constants.HashZero, randomHex(32), [])).to.be.revertedWithCustomError(
+          ongoingCampaigns,
           'InvalidCampaign'
         );
       });
     });
     when('sending an empty merkle root', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(ongoingAirdrops.connect(admin).updateCampaign(randomHex(32), constants.HashZero, [])).to.be.revertedWithCustomError(
-          ongoingAirdrops,
+        await expect(ongoingCampaigns.connect(admin).updateCampaign(randomHex(32), constants.HashZero, [])).to.be.revertedWithCustomError(
+          ongoingCampaigns,
           'InvalidMerkleRoot'
         );
       });
     });
     when('sending empty token allocations', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(ongoingAirdrops.connect(admin).updateCampaign(randomHex(32), randomHex(32), [])).to.be.revertedWithCustomError(
-          ongoingAirdrops,
+        await expect(ongoingCampaigns.connect(admin).updateCampaign(randomHex(32), randomHex(32), [])).to.be.revertedWithCustomError(
+          ongoingCampaigns,
           'InvalidTokenAmount'
         );
       });
@@ -110,12 +110,12 @@ describe('OngoingAirdrops', () => {
       const campaign = randomHex(32);
       const airdroppedAmount = BigNumber.from('10');
       given(async () => {
-        await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, token, airdroppedAmount);
+        await ongoingCampaigns.setTotalAirdroppedByCampaignAndToken(campaign, token, airdroppedAmount);
       });
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingAirdrops.connect(admin).updateCampaign(campaign, randomHex(32), [{ token, amount: airdroppedAmount.sub(1) }])
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidTokenAmount');
+          ongoingCampaigns.connect(admin).updateCampaign(campaign, randomHex(32), [{ token, amount: airdroppedAmount.sub(1) }])
+        ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidTokenAmount');
       });
     });
 
@@ -132,7 +132,7 @@ describe('OngoingAirdrops', () => {
     });
 
     behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => ongoingAirdrops,
+      contract: () => ongoingCampaigns,
       funcAndSignature: 'updateCampaign(bytes32,bytes32,(address,uint256)[])',
       params: [constants.HashZero, constants.HashZero, []],
       addressWithRole: () => admin,
@@ -143,7 +143,7 @@ describe('OngoingAirdrops', () => {
   describe('claimAndSendToClaimee', () => {
     const CAMPAIGN = randomHex(32);
     const CLAIMEE = generateRandomAddress();
-    const TOKENS_AMOUNTS: IOngoingAirdrops.TokenAmountStruct[] = [
+    const TOKENS_AMOUNTS: IOngoingCampaigns.TokenAmountStruct[] = [
       {
         token: generateRandomAddress(),
         amount: 1000,
@@ -155,12 +155,12 @@ describe('OngoingAirdrops', () => {
     ];
     const PROOF = [randomHex(32), randomHex(32)];
     given(async () => {
-      await ongoingAirdrops.claimAndSendToClaimee(CAMPAIGN, CLAIMEE, TOKENS_AMOUNTS, PROOF);
+      await ongoingCampaigns.claimAndSendToClaimee(CAMPAIGN, CLAIMEE, TOKENS_AMOUNTS, PROOF);
     });
     it('calls internal claim with claimee and recipient as same address', async () => {
-      const internalClaimCall = await ongoingAirdrops.internalClaimCall();
-      const internalClaimCallTokensAmounts = await ongoingAirdrops.getInternalClaimCallTokensAmounts();
-      const internalClaimCallProof = await ongoingAirdrops.getInternalClaimCallProof();
+      const internalClaimCall = await ongoingCampaigns.internalClaimCall();
+      const internalClaimCallTokensAmounts = await ongoingCampaigns.getInternalClaimCallTokensAmounts();
+      const internalClaimCallProof = await ongoingCampaigns.getInternalClaimCallProof();
       expect(internalClaimCall.campaign).to.be.equal(CAMPAIGN);
       expect(internalClaimCall.claimee).to.be.equal(CLAIMEE);
       expect(internalClaimCall.recipient).to.be.equal(CLAIMEE);
@@ -176,7 +176,7 @@ describe('OngoingAirdrops', () => {
   describe('claimAndTransfer', () => {
     const CAMPAIGN = randomHex(32);
     const RECIPIENT = generateRandomAddress();
-    const TOKENS_AMOUNTS: IOngoingAirdrops.TokenAmountStruct[] = [
+    const TOKENS_AMOUNTS: IOngoingCampaigns.TokenAmountStruct[] = [
       {
         token: generateRandomAddress(),
         amount: 1000,
@@ -188,12 +188,12 @@ describe('OngoingAirdrops', () => {
     ];
     const PROOF = [randomHex(32), randomHex(32)];
     given(async () => {
-      await ongoingAirdrops.claimAndTransfer(CAMPAIGN, TOKENS_AMOUNTS, RECIPIENT, PROOF);
+      await ongoingCampaigns.claimAndTransfer(CAMPAIGN, TOKENS_AMOUNTS, RECIPIENT, PROOF);
     });
     it('calls internal claim with claimee as message sender and the correct recipient', async () => {
-      const internalClaimCall = await ongoingAirdrops.internalClaimCall();
-      const internalClaimCallTokensAmounts = await ongoingAirdrops.getInternalClaimCallTokensAmounts();
-      const internalClaimCallProof = await ongoingAirdrops.getInternalClaimCallProof();
+      const internalClaimCall = await ongoingCampaigns.internalClaimCall();
+      const internalClaimCallTokensAmounts = await ongoingCampaigns.getInternalClaimCallTokensAmounts();
+      const internalClaimCallProof = await ongoingCampaigns.getInternalClaimCallProof();
       expect(internalClaimCall.campaign).to.be.equal(CAMPAIGN);
       expect(internalClaimCall.claimee).to.be.equal(user.address);
       expect(internalClaimCall.recipient).to.be.equal(RECIPIENT);
@@ -210,43 +210,43 @@ describe('OngoingAirdrops', () => {
     when('sending an empty campaign', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingAirdrops.internalClaim(
+          ongoingCampaigns.internalClaim(
             { campaign: constants.HashZero, recipient: generateRandomAddress(), claimee: generateRandomAddress() },
             [],
             []
           )
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidCampaign');
+        ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidCampaign');
       });
     });
     when('recipient is zero address', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingAirdrops.internalClaim({ campaign: randomHex(32), recipient: constants.AddressZero, claimee: generateRandomAddress() }, [], [])
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'ZeroAddress');
+          ongoingCampaigns.internalClaim({ campaign: randomHex(32), recipient: constants.AddressZero, claimee: generateRandomAddress() }, [], [])
+        ).to.be.revertedWithCustomError(ongoingCampaigns, 'ZeroAddress');
       });
     });
     when('sending empty merkle proof', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingAirdrops.internalClaim(
+          ongoingCampaigns.internalClaim(
             { campaign: randomHex(32), recipient: generateRandomAddress(), claimee: generateRandomAddress() },
             [{ token: generateRandomAddress(), amount: 1 }],
             []
           )
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+        ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidProof');
       });
     });
     when('claiming from a random campaign with root zero', () => {
       const campaign = randomHex(32);
-      let tokenAllocation: IOngoingAirdrops.TokenAmountStruct[];
+      let tokenAllocation: IOngoingCampaigns.TokenAmountStruct[];
       given(async () => {
         tokenAllocation = [{ token: tokens[0].address, amount: BigNumber.from('100') }];
-        await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokenAllocation[0].token, tokenAllocation[0].amount);
+        await ongoingCampaigns.setTotalAirdroppedByCampaignAndToken(campaign, tokenAllocation[0].token, tokenAllocation[0].amount);
       });
       then('tx is reverted with custom error', async () => {
         // Random proof for root zero
         await expect(
-          ongoingAirdrops.internalClaim(
+          ongoingCampaigns.internalClaim(
             {
               campaign,
               claimee: user.address,
@@ -255,10 +255,10 @@ describe('OngoingAirdrops', () => {
             tokenAllocation,
             [randomHex(32)]
           )
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+        ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidProof');
         // Hash zero for root zero
         await expect(
-          ongoingAirdrops.internalClaim(
+          ongoingCampaigns.internalClaim(
             {
               campaign,
               claimee: user.address,
@@ -267,12 +267,12 @@ describe('OngoingAirdrops', () => {
             tokenAllocation,
             [constants.HashZero]
           )
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+        ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidProof');
         // Having a valid proof for a root zero
         const { tree, leaves } = createMerkleTree([user.address], [tokenAllocation]);
         const proof = tree.getHexProof(leaves[0]);
         await expect(
-          ongoingAirdrops.internalClaim(
+          ongoingCampaigns.internalClaim(
             {
               campaign,
               claimee: user.address,
@@ -281,11 +281,11 @@ describe('OngoingAirdrops', () => {
             tokenAllocation,
             proof
           )
-        ).to.be.revertedWithCustomError(ongoingAirdrops, 'InvalidProof');
+        ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidProof');
       });
     });
     when('all arguments are valid', () => {
-      let claimeesAllocations: IOngoingAirdrops.TokenAmountStruct[][];
+      let claimeesAllocations: IOngoingCampaigns.TokenAmountStruct[][];
       let tree: MerkleTree;
       let leaves: string[];
       let campaignTokens: FakeContract<IERC20>[];
@@ -307,7 +307,7 @@ describe('OngoingAirdrops', () => {
       });
       context('and claimee had already claimed', () => {
         given(async () => {
-          await ongoingAirdrops.internalClaim(
+          await ongoingCampaigns.internalClaim(
             {
               campaign,
               claimee: claimees[0],
@@ -319,7 +319,7 @@ describe('OngoingAirdrops', () => {
         });
         then('tx is reverted with custom error', async () => {
           await expect(
-            ongoingAirdrops.internalClaim(
+            ongoingCampaigns.internalClaim(
               {
                 campaign,
                 claimee: claimees[0],
@@ -328,14 +328,14 @@ describe('OngoingAirdrops', () => {
               claimeesAllocations[0],
               tree.getHexProof(leaves[0])
             )
-          ).to.be.revertedWithCustomError(ongoingAirdrops, 'AlreadyClaimed');
+          ).to.be.revertedWithCustomError(ongoingCampaigns, 'AlreadyClaimed');
         });
       });
       context('and claimee has something to claim', () => {
         let claimTx: TransactionResponse;
         const RECIPIENT = generateRandomAddress();
         given(async () => {
-          claimTx = await ongoingAirdrops.internalClaim(
+          claimTx = await ongoingCampaigns.internalClaim(
             {
               campaign,
               claimee: claimees[0],
@@ -348,7 +348,7 @@ describe('OngoingAirdrops', () => {
         then('total amount claimed by campaign, token and claimee is updated', async () => {
           for (let i = 0; i < campaignTokens.length; i++) {
             expect(
-              await ongoingAirdrops.amountClaimedByCampaignTokenAndClaimee(
+              await ongoingCampaigns.amountClaimedByCampaignTokenAndClaimee(
                 getIdOfCampaignTokenAndClaimee(campaign, campaignTokens[i].address, claimees[0])
               )
             ).to.be.equal(claimeesAllocations[0][i].amount);
@@ -357,15 +357,13 @@ describe('OngoingAirdrops', () => {
         then('total claimed by campaign and token is updated', async () => {
           for (let i = 0; i < campaignTokens.length; i++) {
             expect(
-              await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, campaignTokens[i].address))
+              await ongoingCampaigns.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, campaignTokens[i].address))
             ).to.be.equal(claimeesAllocations[0][i].amount);
           }
         });
         then('sends correct amount of tokens to recipient', async () => {
           for (let i = 0; i < campaignTokens.length; i++) {
-            const [to, amount] = campaignTokens[i].transfer.getCall(0).args;
-            expect(to).to.be.equal(RECIPIENT);
-            expect(amount).to.be.equal(claimeesAllocations[0][i].amount);
+            expect(campaignTokens[i].transfer).to.have.been.calledOnceWith(RECIPIENT, claimeesAllocations[0][i].amount);
           }
         });
         then('emits event with correct information', async () => {
@@ -392,8 +390,8 @@ describe('OngoingAirdrops', () => {
   describe('shutdown', () => {
     when('sending zero address recipient', () => {
       then('tx is reverted with custom error', async () => {
-        await expect(ongoingAirdrops.connect(admin).shutdown(constants.HashZero, [], constants.AddressZero)).to.be.revertedWithCustomError(
-          ongoingAirdrops,
+        await expect(ongoingCampaigns.connect(admin).shutdown(constants.HashZero, [], constants.AddressZero)).to.be.revertedWithCustomError(
+          ongoingCampaigns,
           'ZeroAddress'
         );
       });
@@ -424,7 +422,7 @@ describe('OngoingAirdrops', () => {
     });
 
     behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => ongoingAirdrops,
+      contract: () => ongoingCampaigns,
       funcAndSignature: 'shutdown(bytes32,address[],address)',
       params: [constants.HashZero, [], constants.AddressZero],
       addressWithRole: () => admin,
@@ -447,9 +445,9 @@ describe('OngoingAirdrops', () => {
       let updateTx: TransactionResponse;
       given(async () => {
         for (let i = 0; i < previousAllocations.length; i++) {
-          await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, previousAllocations[i]);
+          await ongoingCampaigns.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, previousAllocations[i]);
         }
-        updateTx = await ongoingAirdrops.connect(admin).updateCampaign(
+        updateTx = await ongoingCampaigns.connect(admin).updateCampaign(
           campaign,
           root,
           newAllocations.map((allocation, i) => {
@@ -459,7 +457,7 @@ describe('OngoingAirdrops', () => {
       });
       then('updates total airdropped amount by campaign and token', async () => {
         for (let i = 0; i < previousAllocations.length; i++) {
-          expect(await ongoingAirdrops.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(
+          expect(await ongoingCampaigns.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(
             newAllocations[i]
           );
         }
@@ -468,13 +466,13 @@ describe('OngoingAirdrops', () => {
         for (let i = 0; i < previousAllocations.length; i++) {
           expect(tokens[i].transferFrom).to.have.been.calledOnceWith(
             admin.address,
-            ongoingAirdrops.address,
+            ongoingCampaigns.address,
             newAllocations[i] - previousAllocations[i]
           );
         }
       });
       then('updates root', async () => {
-        expect(await ongoingAirdrops.roots(campaign)).to.be.equal(root);
+        expect(await ongoingCampaigns.roots(campaign)).to.be.equal(root);
       });
       then('emits event with correct information', async () => {
         const transactionArgs = await getArgsFromEvent(updateTx, 'CampaignUpdated');
@@ -499,23 +497,23 @@ describe('OngoingAirdrops', () => {
       given(async () => {
         tokenAddresses = [];
         for (let i = 0; i < totalAirdropped.length; i++) {
-          await ongoingAirdrops.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, totalAirdropped[i]);
-          await ongoingAirdrops.setTotalClaimedByCampaignAndToken(campaign, tokens[i].address, totalClaimed[i]);
+          await ongoingCampaigns.setTotalAirdroppedByCampaignAndToken(campaign, tokens[i].address, totalAirdropped[i]);
+          await ongoingCampaigns.setTotalClaimedByCampaignAndToken(campaign, tokens[i].address, totalClaimed[i]);
           tokenAddresses.push(tokens[i].address);
         }
-        shutdownTx = await ongoingAirdrops.connect(admin).shutdown(campaign, tokenAddresses, recipient);
+        shutdownTx = await ongoingCampaigns.connect(admin).shutdown(campaign, tokenAddresses, recipient);
       });
       then('root is set to zero hash', async () => {
-        expect(await ongoingAirdrops.roots(campaign)).to.be.equal(constants.HashZero);
+        expect(await ongoingCampaigns.roots(campaign)).to.be.equal(constants.HashZero);
       });
       then('total claimed by campaign and token gets removed', async () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(await ongoingAirdrops.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
+          expect(await ongoingCampaigns.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
         }
       });
       then('total airdropped by campaign and token gets removed', async () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(await ongoingAirdrops.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
+          expect(await ongoingCampaigns.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
         }
       });
       then('transfers out the correct amount to the recipient', () => {
@@ -548,7 +546,7 @@ describe('OngoingAirdrops', () => {
     allocations: BigNumberish[][];
   }) {
     const tokenAddresses = tokens.map((token) => token.address);
-    const claimeesAllocations: IOngoingAirdrops.TokenAmountStruct[][] = claimees.map((_, i) =>
+    const claimeesAllocations: IOngoingCampaigns.TokenAmountStruct[][] = claimees.map((_, i) =>
       tokenAddresses.map((token, j) => {
         return {
           token,
@@ -565,7 +563,7 @@ describe('OngoingAirdrops', () => {
         amount: totalAllocation,
       };
     });
-    await ongoingAirdrops.connect(admin).updateCampaign(campaign, root, totalAllocations);
+    await ongoingCampaigns.connect(admin).updateCampaign(campaign, root, totalAllocations);
     return {
       claimeesAllocations,
       tree,

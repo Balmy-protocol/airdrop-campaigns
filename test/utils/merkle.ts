@@ -1,9 +1,9 @@
 import { MerkleTree } from 'merkletreejs';
 import { keccak256 } from 'ethers/lib/utils';
-import { IOngoingAirdrops } from '@typechained';
+import { IOngoingCampaigns } from '@typechained';
 import { BigNumber, ethers } from 'ethers';
 
-export function getLeaf(address: string, tokenAllocation: IOngoingAirdrops.TokenAmountStruct[]): string {
+export function getLeaf(address: string, tokenAllocation: IOngoingCampaigns.TokenAmountStruct[]): string {
   let leafString = address;
   for (let i = 0; i < tokenAllocation.length; i++) {
     // Can't do normal abi encode because on solidity
@@ -16,7 +16,7 @@ export function getLeaf(address: string, tokenAllocation: IOngoingAirdrops.Token
 
 export function createMerkleTree(
   addresses: string[],
-  tokensAllocations: IOngoingAirdrops.TokenAmountStruct[][]
+  tokensAllocations: IOngoingCampaigns.TokenAmountStruct[][]
 ): { tree: MerkleTree; leaves: string[] } {
   const leaves = addresses.map((address, i) => getLeaf(address, tokensAllocations[i]));
   return {

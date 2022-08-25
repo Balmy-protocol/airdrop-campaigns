@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
-import '../OngoingAirdrops.sol';
+import '../OngoingCampaigns.sol';
 
-contract OngoingAirdropsMock is OngoingAirdrops {
+contract OngoingCampaignsMock is OngoingCampaigns {
   ClaimParams public internalClaimCall;
   TokenAmount[] internal _internalClaimCallTokensAmounts;
   bytes32[] internal _internalClaimCallProof;
 
-  constructor(address _superAdmin, address[] memory _initialAdmins) OngoingAirdrops(_superAdmin, _initialAdmins) {}
+  constructor(address _superAdmin, address[] memory _initialAdmins) OngoingCampaigns(_superAdmin, _initialAdmins) {}
 
   function getInternalClaimCallProof() external view returns (bytes32[] memory _proof) {
     _proof = new bytes32[](_internalClaimCallProof.length);

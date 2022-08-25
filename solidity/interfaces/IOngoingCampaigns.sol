@@ -12,7 +12,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
  *         permissioned contract, admins have full control over the funds. Some modifications can be done so its less
  *         permissioned.
  */
-interface IOngoingAirdrops {
+interface IOngoingCampaigns {
   /**
    * @notice Token and amount information
    * @dev Struct that will hold an ERC20 token, and an amount.
