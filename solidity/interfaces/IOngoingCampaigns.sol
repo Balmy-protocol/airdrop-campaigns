@@ -12,7 +12,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
  *         permissioned contract, admins have full control over the funds. Some modifications can be done so its less
  *         permissioned.
  */
-interface IOngoingAirdrops {
+interface IOngoingCampaigns {
   /**
    * @notice Token and amount information
    * @dev Struct that will hold an ERC20 token, and an amount.
@@ -20,6 +20,16 @@ interface IOngoingAirdrops {
   struct TokenAmount {
     IERC20 token;
     uint256 amount;
+  }
+
+  /**
+   * @notice ClaimParams
+   * @dev Struct that will be used for the internal claim call.
+   */
+  struct ClaimParams {
+    bytes32 campaign;
+    address claimee;
+    address recipient;
   }
 
   /// @notice Thrown when a campaign is invalid, or zero bytes.
@@ -62,14 +72,15 @@ interface IOngoingAirdrops {
 
   /**
    * @notice Emitted when a user claims a tranche.
-   * @param campaign Campaign being claimed
+   * @param claimParams Will hold:
+   *  - campaign Campaign being claimed
+   *  - claimee Address of the person claiming the airdrop
+   *  - recipient Address that will receive the tokens being claimed
    * @param initiator Address of the person initiating the claim
-   * @param claimee Address of the person claiming the airdrop
    * @param tokensAmount Tokens and amounts being used to get leaf
    * @param claimed Total amount of claimed tokens where token claimed = tokensAmount[index].token
-   * @param recipient Address that will receive the tokens being claimed
    */
-  event Claimed(bytes32 campaign, address initiator, address claimee, TokenAmount[] tokensAmount, uint256[] claimed, address recipient);
+  event Claimed(ClaimParams claimParams, address initiator, TokenAmount[] tokensAmount, uint256[] claimed);
 
   /**
    * @notice Exposes campaign's merkle root used to prove user claims
@@ -82,10 +93,10 @@ interface IOngoingAirdrops {
   /**
    * @notice Exposes token amount claimed by user on a given campaign
    * @dev This value cannot be modified
-   * @param campaignTokenAndUserId Id built by hashing concatenated values of: Campaign name, token address and user address.
+   * @param campaignTokenAndClaimeeId Id built by hashing concatenated values of: Campaign name, token address and user address.
    * @return Amount claimed
    */
-  function amountClaimedByCampaignTokenAndUser(bytes32 campaignTokenAndUserId) external view returns (uint256);
+  function amountClaimedByCampaignTokenAndClaimee(bytes32 campaignTokenAndClaimeeId) external view returns (uint256);
 
   /**
    * @notice Total sum of all airdropped amounts of a given token and campaign.
