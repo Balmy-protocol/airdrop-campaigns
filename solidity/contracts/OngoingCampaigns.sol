@@ -2,14 +2,13 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '../interfaces/IOngoingCampaigns.sol';
-import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
-contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
+contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
   using SafeERC20 for IERC20;
 
-  bytes32 public constant SUPER_ADMIN_ROLE = keccak256('SUPER_ADMIN_ROLE');
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
   /// @inheritdoc IOngoingCampaigns
@@ -21,12 +20,7 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
   /// @inheritdoc IOngoingCampaigns
   mapping(bytes32 => uint256) public totalClaimedByCampaignAndToken;
 
-  constructor(address _superAdmin, address[] memory _initialAdmins) {
-    if (_superAdmin == address(0)) revert ZeroAddress();
-    // We are setting the super admin role as its own admin so we can transfer it
-    _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
-    _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
-    _grantRole(SUPER_ADMIN_ROLE, _superAdmin);
+  constructor(address _superAdmin, address[] memory _initialAdmins) AccessControlDefaultAdminRules(3 days, _superAdmin) {
     for (uint256 _i = 0; _i < _initialAdmins.length; ++_i) {
       _grantRole(ADMIN_ROLE, _initialAdmins[_i]);
     }

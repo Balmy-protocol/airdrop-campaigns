@@ -35,7 +35,7 @@ describe('OngoingCampaigns', () => {
       tokens.push(await smock.fake('IERC20'));
     }
     ongoingCampaigns = await ongoingCampaignsFactory.deploy(superAdmin.address, [admin.address]);
-    [superAdminRole, adminRole] = await Promise.all([ongoingCampaigns.SUPER_ADMIN_ROLE(), ongoingCampaigns.ADMIN_ROLE()]);
+    [superAdminRole, adminRole] = await Promise.all([ongoingCampaigns.DEFAULT_ADMIN_ROLE(), ongoingCampaigns.ADMIN_ROLE()]);
     snapshot = await takeSnapshot();
   });
 
@@ -55,7 +55,7 @@ describe('OngoingCampaigns', () => {
         await behaviours.deployShouldRevertWithCustomError({
           contract: ongoingCampaignsFactory,
           args: [constants.AddressZero, []],
-          customErrorName: 'ZeroAddress',
+          customErrorName: 'AccessControlInvalidDefaultAdmin',
         });
       });
     });
