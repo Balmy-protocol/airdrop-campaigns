@@ -207,13 +207,6 @@ describe('OngoingCampaigns', () => {
   });
 
   describe('_claim', () => {
-    when('sending an empty campaign', () => {
-      then('tx is reverted with custom error', async () => {
-        await expect(
-          ongoingCampaigns.internalClaim(constants.HashZero, generateRandomAddress(), generateRandomAddress(), [], [])
-        ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidCampaign');
-      });
-    });
     when('recipient is zero address', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
@@ -279,22 +272,6 @@ describe('OngoingCampaigns', () => {
           allocations,
         }));
       });
-      context('and claimee had already claimed', () => {
-        given(async () => {
-          await ongoingCampaigns.internalClaim(
-            campaign,
-            claimees[0],
-            generateRandomAddress(),
-            claimeesAllocations[0],
-            tree.getHexProof(leaves[0])
-          );
-        });
-        then('tx is reverted with custom error', async () => {
-          await expect(
-            ongoingCampaigns.internalClaim(campaign, claimees[0], generateRandomAddress(), claimeesAllocations[0], tree.getHexProof(leaves[0]))
-          ).to.be.revertedWithCustomError(ongoingCampaigns, 'AlreadyClaimed');
-        });
-      });
       context('and claimee has something to claim', () => {
         let claimTx: TransactionResponse;
         const RECIPIENT = generateRandomAddress();
@@ -328,10 +305,9 @@ describe('OngoingCampaigns', () => {
           expect(args.claimee).to.be.equal(claimees[0]);
           expect(args.recipient).to.be.equal(RECIPIENT);
           expect(args.initiator).to.be.equal(user.address);
-          expect(args.tokensAmount.length).to.be.equal(claimeesAllocations[0].length);
-          for (let i = 0; i < args.tokensAmount.length; i++) {
-            expect(args.tokensAmount[i].token).to.be.equal(claimeesAllocations[0][i].token);
-            expect(args.tokensAmount[i].amount).to.be.equal(claimeesAllocations[0][i].amount);
+          expect(args.tokens.length).to.be.equal(claimeesAllocations[0].length);
+          for (let i = 0; i < args.tokens.length; i++) {
+            expect(args.tokens[i]).to.be.equal(claimeesAllocations[0][i].token);
           }
           expect(args.claimed.length).to.be.equal(allocations[0].length);
           for (let i = 0; i < args.claimed.length; i++) {
@@ -474,7 +450,11 @@ describe('OngoingCampaigns', () => {
       });
       then('transfers out the correct amount to the recipient', () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(tokens[i].transfer).to.have.been.calledOnceWith(recipient, unclaimed[i]);
+          if (unclaimed[i] > 0) {
+            expect(tokens[i].transfer).to.have.been.calledOnceWith(recipient, unclaimed[i]);
+          } else {
+            expect(tokens[i].transfer).to.not.have.been.called;
+          }
         }
       });
       then('emits event with correct information', async () => {

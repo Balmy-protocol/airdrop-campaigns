@@ -40,9 +40,6 @@ interface IOngoingCampaigns {
   /// @notice Thrown when trying to claim an expired campaign.
   error ExpiredCampaing();
 
-  /// @notice Thrown when user tries to claim a campaign without having a new claim.
-  error AlreadyClaimed();
-
   /**
    * @notice Emitted when a campaign is updated
    * @param campaign Campaign name updated
@@ -66,10 +63,10 @@ interface IOngoingCampaigns {
    * @param claimee Address of the person claiming the airdrop
    * @param recipient Address that will receive the tokens being claimed
    * @param initiator Address of the person initiating the claim
-   * @param tokensAmount Tokens and amounts being used to get leaf
+   * @param tokens Tokens that were claimed
    * @param claimed Total amount of claimed tokens where token claimed = tokensAmount[index].token
    */
-  event Claimed(bytes32 campaign, address claimee, address recipient, address initiator, TokenAmount[] tokensAmount, uint256[] claimed);
+  event Claimed(bytes32 campaign, address claimee, address recipient, address initiator, IERC20[] tokens, uint256[] claimed);
 
   /**
    * @notice Exposes campaign's merkle root used to prove user claims
@@ -128,7 +125,6 @@ interface IOngoingCampaigns {
    *   - With InvalidTokenAmount if length is zero.
    *   - With InvalidProof if proof is invalid.
    *   - With ExpiredCampaing if campaign already expired.
-   *   - With AlreadyClaimed if campaign and proof already used, or there is nothing new to claim
    * @param campaign Campaign being claimed
    * @param claimee Address that is the owner of the airdrop
    * @param tokensAmounts Array of sum of all airdropped amounts and token on campaign being claimed.
@@ -149,7 +145,6 @@ interface IOngoingCampaigns {
    *   - With InvalidTokenAmount if length is zero.
    *   - With InvalidProof if proof is invalid.
    *   - With ExpiredCampaing if campaign already expired.
-   *   - With AlreadyClaimed if campaign and proof already used, or there is nothing new to claim
    * @param campaign Campaign being claimed
    * @param tokensAmounts Array of sum of all airdropped amounts and token on campaign being claimed.
    * @param recipient Receiver address of the airdropped tokens

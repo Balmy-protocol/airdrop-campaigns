@@ -100,7 +100,6 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     bytes32[] calldata _proof
   ) internal virtual {
     // Basic checks
-    if (_campaign == bytes32(0)) revert InvalidCampaign();
     if (_recipient == address(0)) revert ZeroAddress();
     if (_proof.length == 0) revert InvalidProof();
 
@@ -112,18 +111,19 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     }
 
     // Go through every token being claimed and apply check-effects-interaction per token.
-    bool _somethingWasClaimed = false;
     uint256[] memory _claimed = new uint256[](_tokensAmounts.length);
+    IERC20[] memory _tokens = new IERC20[](_tokensAmounts.length);
     for (uint256 _i = 0; _i < _tokensAmounts.length; ++_i) {
-      // Move calldata to memory
       TokenAmount memory _tokenAmount = _tokensAmounts[_i];
+
       // Build our unique ID for campaign, token and claimee address.
       bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
+
       // Calculate to claim
       _claimed[_i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId];
-      // It might happen that not all airdropped tokens were updated.
+      _tokens[_i] = _tokenAmount.token;
+
       if (_claimed[_i] > 0) {
-        if (!_somethingWasClaimed) _somethingWasClaimed = true;
         // Update the total amount claimed of the token and campaign for the claimee
         amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId] = _tokenAmount.amount;
         // Update the total claimed of a token on a campaign
@@ -133,11 +133,8 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       }
     }
 
-    // If nothing was claimed, then it was already claimed.
-    if (!_somethingWasClaimed) revert AlreadyClaimed();
-
     // Emit event
-    emit Claimed(_campaign, _claimee, _recipient, msg.sender, _tokensAmounts, _claimed);
+    emit Claimed(_campaign, _claimee, _recipient, msg.sender, _tokens, _claimed);
   }
 
   /// @inheritdoc IOngoingCampaigns
@@ -151,17 +148,22 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     // We delete campaign setting it effectively to zero root, so users can't claim this campaign
     delete roots[_campaign];
     for (uint256 _i = 0; _i < _tokens.length; ++_i) {
-      // Move from calldata to memory as an optimization
       IERC20 _token = _tokens[_i];
+
       // Build our unique ID for campaign and token address.
       bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _token);
+
       // Understand how much is still available
       _unclaimed[_i] = totalAirdroppedByCampaignAndToken[_campaignAndTokenId] - totalClaimedByCampaignAndToken[_campaignAndTokenId];
+
       // We remove unecessary data so we get a little bit of gas back
       delete totalClaimedByCampaignAndToken[_campaignAndTokenId];
       delete totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
-      // Transfer it out to recipient
-      _token.safeTransfer(_recipient, _unclaimed[_i]);
+
+      if (_unclaimed[_i] > 0) {
+        // Transfer it out to recipient
+        _token.safeTransfer(_recipient, _unclaimed[_i]);
+      }
     }
 
     emit CampaignShutDown(_campaign, _tokens, _unclaimed, _recipient);
