@@ -3,15 +3,12 @@ import chaiAsPromised from 'chai-as-promised';
 import chai from 'chai';
 import { Contract, ContractFactory, ContractInterface, Signer, Wallet } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { Provider } from '@ethersproject/providers';
 import { getStatic } from 'ethers/lib/utils';
 import { wallet } from '.';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { given, when, then } from './bdd';
 
 chai.use(chaiAsPromised);
-
-type Impersonator = Signer | Provider | string;
 
 export const checkTxRevertedWithMessage = async ({
   tx,

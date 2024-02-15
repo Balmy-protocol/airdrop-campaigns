@@ -1,6 +1,10 @@
-import { Suite, SuiteFunction } from 'mocha';
+import { Suite, SuiteFunction, it, beforeEach, TestFunction, Func } from 'mocha';
 
-export const then = it;
+export const then = (title: string, fn?: Func) => {
+  if (typeof title === 'string') {
+    it(title, fn);
+  }
+};
 export const given = beforeEach;
 export const when: SuiteFunction = <SuiteFunction>function (title: string, fn: (this: Suite) => void) {
   context('when ' + title, fn);
