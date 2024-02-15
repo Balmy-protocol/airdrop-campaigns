@@ -273,7 +273,7 @@ export const shouldBeExecutableOnlyByRole = ({
         [funcAndSignature](...realParams);
     });
     then('tx is reverted with reason', async () => {
-      await expect(tx).to.be.revertedWith(`AccessControl: account ${walletWithoutRole.address.toLowerCase()} is missing role ${role()}`);
+      await expect(tx).to.be.revertedWithCustomError(contract(), 'AccessControlUnauthorizedAccount').withArgs(walletWithoutRole.address, role());
     });
   });
   when('called from address with role', () => {

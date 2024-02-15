@@ -26,12 +26,9 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
     // We are setting the super admin role as its own admin so we can transfer it
     _setRoleAdmin(SUPER_ADMIN_ROLE, SUPER_ADMIN_ROLE);
     _setRoleAdmin(ADMIN_ROLE, SUPER_ADMIN_ROLE);
-    _setupRole(SUPER_ADMIN_ROLE, _superAdmin);
-    for (uint256 _i = 0; _i < _initialAdmins.length; ) {
-      _setupRole(ADMIN_ROLE, _initialAdmins[_i]);
-      unchecked {
-        _i++;
-      }
+    _grantRole(SUPER_ADMIN_ROLE, _superAdmin);
+    for (uint256 _i = 0; _i < _initialAdmins.length; ++_i) {
+      _grantRole(ADMIN_ROLE, _initialAdmins[_i]);
     }
   }
 
@@ -45,7 +42,7 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
     if (_root == bytes32(0)) revert InvalidMerkleRoot();
     if (_tokensAllocation.length == 0) revert InvalidTokenAmount();
 
-    for (uint256 _i = 0; _i < _tokensAllocation.length; ) {
+    for (uint256 _i = 0; _i < _tokensAllocation.length; ++_i) {
       // Move from calldata to memory
       TokenAmount memory _tokenAllocation = _tokensAllocation[_i];
 
@@ -72,10 +69,6 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
 
       // Refill contract with the ERC20 tokens
       _tokenAllocation.token.safeTransferFrom(msg.sender, address(this), _refillNeeded);
-
-      unchecked {
-        _i++;
-      }
     }
 
     // Update the information
@@ -123,7 +116,7 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
     // Go through every token being claimed and apply check-effects-interaction per token.
     bool _somethingWasClaimed = false;
     uint256[] memory _claimed = new uint256[](_tokensAmounts.length);
-    for (uint256 _i = 0; _i < _tokensAmounts.length; ) {
+    for (uint256 _i = 0; _i < _tokensAmounts.length; ++_i) {
       // Move calldata to memory
       TokenAmount memory _tokenAmount = _tokensAmounts[_i];
       // Build our unique ID for campaign, token and claimee address.
@@ -139,9 +132,6 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
         totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_claimParams.campaign, _tokenAmount.token)] += _claimed[_i];
         // Send the recipient the claimed tokens
         _tokenAmount.token.safeTransfer(_claimParams.recipient, _claimed[_i]);
-      }
-      unchecked {
-        _i++;
       }
     }
 
@@ -162,7 +152,7 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
     _unclaimed = new uint256[](_tokens.length);
     // We delete campaign setting it effectively to zero root, so users can't claim this campaign
     delete roots[_campaign];
-    for (uint256 _i = 0; _i < _tokens.length; ) {
+    for (uint256 _i = 0; _i < _tokens.length; ++_i) {
       // Move from calldata to memory as an optimization
       IERC20 _token = _tokens[_i];
       // Build our unique ID for campaign and token address.
@@ -174,10 +164,6 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
       delete totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
       // Transfer it out to recipient
       _token.safeTransfer(_recipient, _unclaimed[_i]);
-      // Lil optimization
-      unchecked {
-        _i++;
-      }
     }
 
     emit CampaignShutDown(_campaign, _tokens, _unclaimed, _recipient);
@@ -196,11 +182,8 @@ contract OngoingCampaigns is AccessControl, IOngoingCampaigns {
   }
 
   function _encode(TokenAmount[] calldata _tokenAmounts) internal pure returns (bytes memory _result) {
-    for (uint256 _i = 0; _i < _tokenAmounts.length; ) {
+    for (uint256 _i = 0; _i < _tokenAmounts.length; ++_i) {
       _result = bytes.concat(_result, abi.encodePacked(_tokenAmounts[_i].token, _tokenAmounts[_i].amount));
-      unchecked {
-        _i++;
-      }
     }
   }
 }
