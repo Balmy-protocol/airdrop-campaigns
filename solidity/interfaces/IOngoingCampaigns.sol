@@ -62,11 +62,10 @@ interface IOngoingCampaigns {
    * @param campaign Campaign being claimed
    * @param claimee Address of the person claiming the airdrop
    * @param recipient Address that will receive the tokens being claimed
-   * @param initiator Address of the person initiating the claim
    * @param tokens Tokens that were claimed
    * @param claimed Total amount of claimed tokens where token claimed = tokensAmount[index].token
    */
-  event Claimed(bytes32 campaign, address claimee, address recipient, address initiator, IERC20[] tokens, uint256[] claimed);
+  event Claimed(bytes32 campaign, address claimee, address recipient, IERC20[] tokens, uint256[] claimed);
 
   /**
    * @notice Exposes campaign's merkle root used to prove user claims

@@ -5,7 +5,7 @@ import { ethers } from 'hardhat';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import { takeSnapshot, SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers';
-import { BigNumber, BigNumberish, constants, utils } from 'ethers';
+import { BigNumber, BigNumberish, constants } from 'ethers';
 import { randomHex } from 'web3-utils';
 import { getArgsFromEvent } from '@utils/event-utils';
 import { behaviours } from '@utils';
@@ -304,7 +304,6 @@ describe('OngoingCampaigns', () => {
           expect(args.campaign).to.be.equal(campaign);
           expect(args.claimee).to.be.equal(claimees[0]);
           expect(args.recipient).to.be.equal(RECIPIENT);
-          expect(args.initiator).to.be.equal(user.address);
           expect(args.tokens.length).to.be.equal(claimeesAllocations[0].length);
           for (let i = 0; i < args.tokens.length; i++) {
             expect(args.tokens[i]).to.be.equal(claimeesAllocations[0][i].token);

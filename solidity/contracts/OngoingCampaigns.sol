@@ -134,7 +134,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     }
 
     // Emit event
-    emit Claimed(_campaign, _claimee, _recipient, msg.sender, _tokens, _claimed);
+    emit Claimed(_campaign, _claimee, _recipient, _tokens, _claimed);
   }
 
   /// @inheritdoc IOngoingCampaigns
