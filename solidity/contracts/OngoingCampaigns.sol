@@ -41,7 +41,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       TokenAmount memory _tokenAllocation = _tokensAllocation[_i];
 
       // Build our unique ID for campaign and token address.
-      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _tokenAllocation.token);
+      bytes32 _campaignAndTokenId = getIdOfCampaignAndToken(_campaign, _tokenAllocation.token);
 
       // Move storage var to memory.
       uint256 _currentTotalAirdropped = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
@@ -117,7 +117,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       TokenAmount memory _tokenAmount = _tokensAmounts[_i];
 
       // Build our unique ID for campaign, token and claimee address.
-      bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
+      bytes32 _campaignTokenAndClaimeeId = getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
 
       // Calculate to claim
       _claimed[_i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId];
@@ -127,7 +127,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
         // Update the total amount claimed of the token and campaign for the claimee
         amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId] = _tokenAmount.amount;
         // Update the total claimed of a token on a campaign
-        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[_i];
+        totalClaimedByCampaignAndToken[getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[_i];
         // Send the recipient the claimed tokens
         _tokenAmount.token.safeTransfer(_recipient, _claimed[_i]);
       }
@@ -151,7 +151,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       IERC20 _token = _tokens[_i];
 
       // Build our unique ID for campaign and token address.
-      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _token);
+      bytes32 _campaignAndTokenId = getIdOfCampaignAndToken(_campaign, _token);
 
       // Understand how much is still available
       _unclaimed[_i] = totalAirdroppedByCampaignAndToken[_campaignAndTokenId] - totalClaimedByCampaignAndToken[_campaignAndTokenId];
@@ -169,15 +169,15 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     emit CampaignShutDown(_campaign, _tokens, _unclaimed, _recipient);
   }
 
-  function _getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) internal pure returns (bytes32) {
+  function getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) public pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token));
   }
 
-  function _getIdOfCampaignTokenAndClaimee(
+  function getIdOfCampaignTokenAndClaimee(
     bytes32 _campaign,
     IERC20 _token,
     address _claimee
-  ) internal pure returns (bytes32) {
+  ) public pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token, _claimee));
   }
 
