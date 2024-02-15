@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
-import '../interfaces/IOngoingCampaigns.sol';
-import '@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
+import {IOngoingCampaigns} from '../interfaces/IOngoingCampaigns.sol';
+import {AccessControlDefaultAdminRules} from '@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol';
+import {SafeERC20, IERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import {MerkleProof} from '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
 contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
   using SafeERC20 for IERC20;
@@ -79,7 +79,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
   ) external {
-    _claim(ClaimParams({campaign: _campaign, claimee: _claimee, recipient: _claimee}), _tokensAmounts, _proof);
+    _claim(_campaign, _claimee, _claimee, _tokensAmounts, _proof);
   }
 
   /// @inheritdoc IOngoingCampaigns
@@ -89,23 +89,27 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     address _recipient,
     bytes32[] calldata _proof
   ) external {
-    _claim(ClaimParams({campaign: _campaign, claimee: msg.sender, recipient: _recipient}), _tokensAmounts, _proof);
+    _claim(_campaign, msg.sender, _recipient, _tokensAmounts, _proof);
   }
 
   function _claim(
-    ClaimParams memory _claimParams,
+    bytes32 _campaign,
+    address _claimee,
+    address _recipient,
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
   ) internal virtual {
     // Basic checks
-    if (_claimParams.campaign == bytes32(0)) revert InvalidCampaign();
-    if (_claimParams.recipient == address(0)) revert ZeroAddress();
+    if (_campaign == bytes32(0)) revert InvalidCampaign();
+    if (_recipient == address(0)) revert ZeroAddress();
     if (_proof.length == 0) revert InvalidProof();
 
-    // Validate the proof and leaf information
-    bytes32 _leaf = keccak256(abi.encodePacked(_claimParams.claimee, _encode(_tokensAmounts)));
-    bool _isValidLeaf = MerkleProof.verify(_proof, roots[_claimParams.campaign], _leaf);
-    if (!_isValidLeaf) revert InvalidProof();
+    {
+      // Validate the proof and leaf information
+      bytes32 _leaf = keccak256(abi.encodePacked(_claimee, _encode(_tokensAmounts)));
+      bool _isValidLeaf = MerkleProof.verify(_proof, roots[_campaign], _leaf);
+      if (!_isValidLeaf) revert InvalidProof();
+    }
 
     // Go through every token being claimed and apply check-effects-interaction per token.
     bool _somethingWasClaimed = false;
@@ -114,7 +118,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       // Move calldata to memory
       TokenAmount memory _tokenAmount = _tokensAmounts[_i];
       // Build our unique ID for campaign, token and claimee address.
-      bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_claimParams.campaign, _tokenAmount.token, _claimParams.claimee);
+      bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
       // Calculate to claim
       _claimed[_i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId];
       // It might happen that not all airdropped tokens were updated.
@@ -123,9 +127,9 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
         // Update the total amount claimed of the token and campaign for the claimee
         amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId] = _tokenAmount.amount;
         // Update the total claimed of a token on a campaign
-        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_claimParams.campaign, _tokenAmount.token)] += _claimed[_i];
+        totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[_i];
         // Send the recipient the claimed tokens
-        _tokenAmount.token.safeTransfer(_claimParams.recipient, _claimed[_i]);
+        _tokenAmount.token.safeTransfer(_recipient, _claimed[_i]);
       }
     }
 
@@ -133,7 +137,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     if (!_somethingWasClaimed) revert AlreadyClaimed();
 
     // Emit event
-    emit Claimed(_claimParams, msg.sender, _tokensAmounts, _claimed);
+    emit Claimed(_campaign, _claimee, _recipient, msg.sender, _tokensAmounts, _claimed);
   }
 
   /// @inheritdoc IOngoingCampaigns

@@ -2,14 +2,14 @@
 /* solhint-disable wonderland/non-state-vars-leading-underscore */
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 /**
  * @title A contract that will enable users to claim from multiple ongoing airdrops.
- * @notice This contract will enable multiple ongoing and updateable airdrops (called campaigns). Each of this campaigns
+ * @notice This contract will enable multiple ongoing and updateable airdrops (called campaigns). Each of these campaigns
  *         will be able to hold airdrop information for multiple tokens through their root.
- *         Additionally, admins will be able to shutdown a campaign whenever it choses to. Since this is a pretty
- *         permissioned contract, admins have full control over the funds. Some modifications can be done so its less
+ *         Additionally, admins will be able to shutdown a campaign whenever they chose to. Since this is a pretty
+ *         permissioned contract, admins have full control over the funds. Some modifications can be done so it's less
  *         permissioned.
  */
 interface IOngoingCampaigns {
@@ -20,16 +20,6 @@ interface IOngoingCampaigns {
   struct TokenAmount {
     IERC20 token;
     uint256 amount;
-  }
-
-  /**
-   * @notice ClaimParams
-   * @dev Struct that will be used for the internal claim call.
-   */
-  struct ClaimParams {
-    bytes32 campaign;
-    address claimee;
-    address recipient;
   }
 
   /// @notice Thrown when a campaign is invalid, or zero bytes.
@@ -72,15 +62,14 @@ interface IOngoingCampaigns {
 
   /**
    * @notice Emitted when a user claims a tranche.
-   * @param claimParams Will hold:
-   *  - campaign Campaign being claimed
-   *  - claimee Address of the person claiming the airdrop
-   *  - recipient Address that will receive the tokens being claimed
+   * @param campaign Campaign being claimed
+   * @param claimee Address of the person claiming the airdrop
+   * @param recipient Address that will receive the tokens being claimed
    * @param initiator Address of the person initiating the claim
    * @param tokensAmount Tokens and amounts being used to get leaf
    * @param claimed Total amount of claimed tokens where token claimed = tokensAmount[index].token
    */
-  event Claimed(ClaimParams claimParams, address initiator, TokenAmount[] tokensAmount, uint256[] claimed);
+  event Claimed(bytes32 campaign, address claimee, address recipient, address initiator, TokenAmount[] tokensAmount, uint256[] claimed);
 
   /**
    * @notice Exposes campaign's merkle root used to prove user claims

@@ -11,7 +11,7 @@ import { getArgsFromEvent } from '@utils/event-utils';
 import { behaviours } from '@utils';
 import { TransactionResponse } from '@ethersproject/providers';
 import { generateRandomAddress } from '@utils/wallet';
-import { createMerkleTree, getLeaf } from '@utils/merkle';
+import { createMerkleTree } from '@utils/merkle';
 import MerkleTree from 'merkletreejs';
 
 chai.use(smock.matchers);
@@ -210,18 +210,14 @@ describe('OngoingCampaigns', () => {
     when('sending an empty campaign', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingCampaigns.internalClaim(
-            { campaign: constants.HashZero, recipient: generateRandomAddress(), claimee: generateRandomAddress() },
-            [],
-            []
-          )
+          ongoingCampaigns.internalClaim(constants.HashZero, generateRandomAddress(), generateRandomAddress(), [], [])
         ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidCampaign');
       });
     });
     when('recipient is zero address', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
-          ongoingCampaigns.internalClaim({ campaign: randomHex(32), recipient: constants.AddressZero, claimee: generateRandomAddress() }, [], [])
+          ongoingCampaigns.internalClaim(randomHex(32), generateRandomAddress(), constants.AddressZero, [], [])
         ).to.be.revertedWithCustomError(ongoingCampaigns, 'ZeroAddress');
       });
     });
@@ -229,7 +225,9 @@ describe('OngoingCampaigns', () => {
       then('tx is reverted with custom error', async () => {
         await expect(
           ongoingCampaigns.internalClaim(
-            { campaign: randomHex(32), recipient: generateRandomAddress(), claimee: generateRandomAddress() },
+            randomHex(32),
+            generateRandomAddress(),
+            generateRandomAddress(),
             [{ token: generateRandomAddress(), amount: 1 }],
             []
           )
@@ -246,41 +244,17 @@ describe('OngoingCampaigns', () => {
       then('tx is reverted with custom error', async () => {
         // Random proof for root zero
         await expect(
-          ongoingCampaigns.internalClaim(
-            {
-              campaign,
-              claimee: user.address,
-              recipient: generateRandomAddress(),
-            },
-            tokenAllocation,
-            [randomHex(32)]
-          )
+          ongoingCampaigns.internalClaim(campaign, user.address, generateRandomAddress(), tokenAllocation, [randomHex(32)])
         ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidProof');
         // Hash zero for root zero
         await expect(
-          ongoingCampaigns.internalClaim(
-            {
-              campaign,
-              claimee: user.address,
-              recipient: generateRandomAddress(),
-            },
-            tokenAllocation,
-            [constants.HashZero]
-          )
+          ongoingCampaigns.internalClaim(campaign, user.address, generateRandomAddress(), tokenAllocation, [constants.HashZero])
         ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidProof');
         // Having a valid proof for a root zero
         const { tree, leaves } = createMerkleTree([user.address], [tokenAllocation]);
         const proof = tree.getHexProof(leaves[0]);
         await expect(
-          ongoingCampaigns.internalClaim(
-            {
-              campaign,
-              claimee: user.address,
-              recipient: generateRandomAddress(),
-            },
-            tokenAllocation,
-            proof
-          )
+          ongoingCampaigns.internalClaim(campaign, user.address, generateRandomAddress(), tokenAllocation, proof)
         ).to.be.revertedWithCustomError(ongoingCampaigns, 'InvalidProof');
       });
     });
@@ -308,26 +282,16 @@ describe('OngoingCampaigns', () => {
       context('and claimee had already claimed', () => {
         given(async () => {
           await ongoingCampaigns.internalClaim(
-            {
-              campaign,
-              claimee: claimees[0],
-              recipient: generateRandomAddress(),
-            },
+            campaign,
+            claimees[0],
+            generateRandomAddress(),
             claimeesAllocations[0],
             tree.getHexProof(leaves[0])
           );
         });
         then('tx is reverted with custom error', async () => {
           await expect(
-            ongoingCampaigns.internalClaim(
-              {
-                campaign,
-                claimee: claimees[0],
-                recipient: generateRandomAddress(),
-              },
-              claimeesAllocations[0],
-              tree.getHexProof(leaves[0])
-            )
+            ongoingCampaigns.internalClaim(campaign, claimees[0], generateRandomAddress(), claimeesAllocations[0], tree.getHexProof(leaves[0]))
           ).to.be.revertedWithCustomError(ongoingCampaigns, 'AlreadyClaimed');
         });
       });
@@ -335,15 +299,7 @@ describe('OngoingCampaigns', () => {
         let claimTx: TransactionResponse;
         const RECIPIENT = generateRandomAddress();
         given(async () => {
-          claimTx = await ongoingCampaigns.internalClaim(
-            {
-              campaign,
-              claimee: claimees[0],
-              recipient: RECIPIENT,
-            },
-            claimeesAllocations[0],
-            tree.getHexProof(leaves[0])
-          );
+          claimTx = await ongoingCampaigns.internalClaim(campaign, claimees[0], RECIPIENT, claimeesAllocations[0], tree.getHexProof(leaves[0]));
         });
         then('total amount claimed by campaign, token and claimee is updated', async () => {
           for (let i = 0; i < campaignTokens.length; i++) {
@@ -368,9 +324,9 @@ describe('OngoingCampaigns', () => {
         });
         then('emits event with correct information', async () => {
           const args = await getArgsFromEvent(claimTx, 'Claimed');
-          expect(args.claimParams.campaign).to.be.equal(campaign);
-          expect(args.claimParams.claimee).to.be.equal(claimees[0]);
-          expect(args.claimParams.recipient).to.be.equal(RECIPIENT);
+          expect(args.campaign).to.be.equal(campaign);
+          expect(args.claimee).to.be.equal(claimees[0]);
+          expect(args.recipient).to.be.equal(RECIPIENT);
           expect(args.initiator).to.be.equal(user.address);
           expect(args.tokensAmount.length).to.be.equal(claimeesAllocations[0].length);
           for (let i = 0; i < args.tokensAmount.length; i++) {
