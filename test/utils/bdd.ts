@@ -1,4 +1,4 @@
-import { Suite, SuiteFunction, it, beforeEach, TestFunction, Func } from 'mocha';
+import { Suite, SuiteFunction, Func } from 'mocha';
 
 export const then = (title: string, fn?: Func) => {
   if (typeof title === 'string') {

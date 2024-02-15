@@ -77,27 +77,25 @@ interface IOngoingCampaigns {
 
   /**
    * @notice Exposes token amount claimed by user on a given campaign
-   * @dev This value cannot be modified
-   * @param campaignTokenAndClaimeeId Id built by hashing concatenated values of: Campaign name, token address and user address.
    * @return Amount claimed
    */
-  function amountClaimedByCampaignTokenAndClaimee(bytes32 campaignTokenAndClaimeeId) external view returns (uint256);
+  function amountClaimed(
+    bytes32 campaign,
+    IERC20 token,
+    address claimee
+  ) external view returns (uint256);
 
   /**
    * @notice Total sum of all airdropped amounts of a given token and campaign.
-   * @dev This value cannot be modified
-   * @param campaignAndTokenId Id built by hashing concatenated values of: Campaign name and token address.
    * @return Sum of all airdropped amounts
    */
-  function totalAirdroppedByCampaignAndToken(bytes32 campaignAndTokenId) external view returns (uint256);
+  function totalAirdropped(bytes32 campaign, IERC20 token) external view returns (uint256);
 
   /**
    * @notice Total amount claimed of a given token and campaign.
-   * @dev This value cannot be modified
-   * @param campaignAndTokenId Id built by hashing concatenated values of: Campaign name and token address.
    * @return Total amount claimed
    */
-  function totalClaimedByCampaignAndToken(bytes32 campaignAndTokenId) external view returns (uint256);
+  function totalClaimed(bytes32 campaign, IERC20 token) external view returns (uint256);
 
   /**
    * @notice Updates campaign information: Tokens allocation and merkle root.

@@ -280,18 +280,14 @@ describe('OngoingCampaigns', () => {
         });
         then('total amount claimed by campaign, token and claimee is updated', async () => {
           for (let i = 0; i < campaignTokens.length; i++) {
-            expect(
-              await ongoingCampaigns.amountClaimedByCampaignTokenAndClaimee(
-                getIdOfCampaignTokenAndClaimee(campaign, campaignTokens[i].address, claimees[0])
-              )
-            ).to.be.equal(claimeesAllocations[0][i].amount);
+            expect(await ongoingCampaigns.amountClaimed(campaign, campaignTokens[i].address, claimees[0])).to.be.equal(
+              claimeesAllocations[0][i].amount
+            );
           }
         });
         then('total claimed by campaign and token is updated', async () => {
           for (let i = 0; i < campaignTokens.length; i++) {
-            expect(
-              await ongoingCampaigns.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, campaignTokens[i].address))
-            ).to.be.equal(claimeesAllocations[0][i].amount);
+            expect(await ongoingCampaigns.totalClaimed(campaign, campaignTokens[i].address)).to.be.equal(claimeesAllocations[0][i].amount);
           }
         });
         then('sends correct amount of tokens to recipient', async () => {
@@ -388,9 +384,7 @@ describe('OngoingCampaigns', () => {
       });
       then('updates total airdropped amount by campaign and token', async () => {
         for (let i = 0; i < previousAllocations.length; i++) {
-          expect(await ongoingCampaigns.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(
-            newAllocations[i]
-          );
+          expect(await ongoingCampaigns.totalAirdropped(campaign, tokens[i].address)).to.be.equal(newAllocations[i]);
         }
       });
       then('transfers the correct amount to the contract', () => {
@@ -439,12 +433,12 @@ describe('OngoingCampaigns', () => {
       });
       then('total claimed by campaign and token gets removed', async () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(await ongoingCampaigns.totalClaimedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
+          expect(await ongoingCampaigns.totalClaimed(campaign, tokens[i].address)).to.be.equal(0);
         }
       });
       then('total airdropped by campaign and token gets removed', async () => {
         for (let i = 0; i < totalAirdropped.length; i++) {
-          expect(await ongoingCampaigns.totalAirdroppedByCampaignAndToken(getIdOfCampaignAndToken(campaign, tokens[i].address))).to.be.equal(0);
+          expect(await ongoingCampaigns.totalAirdropped(campaign, tokens[i].address)).to.be.equal(0);
         }
       });
       then('transfers out the correct amount to the recipient', () => {
@@ -505,13 +499,5 @@ describe('OngoingCampaigns', () => {
       leaves,
       root,
     };
-  }
-
-  function getIdOfCampaignTokenAndClaimee(campaign: string, tokenAddress: string, claimeeAddress: string): string {
-    return ethers.utils.keccak256(`${campaign}${tokenAddress.slice(2)}${claimeeAddress.slice(2)}`);
-  }
-
-  function getIdOfCampaignAndToken(campaign: string, tokenAddress: string): string {
-    return ethers.utils.keccak256(`${campaign}${tokenAddress.slice(2)}`);
   }
 });

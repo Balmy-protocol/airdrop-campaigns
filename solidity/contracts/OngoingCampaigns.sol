@@ -13,17 +13,33 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
 
   /// @inheritdoc IOngoingCampaigns
   mapping(bytes32 => bytes32) public roots;
-  /// @inheritdoc IOngoingCampaigns
-  mapping(bytes32 => uint256) public amountClaimedByCampaignTokenAndClaimee;
-  /// @inheritdoc IOngoingCampaigns
-  mapping(bytes32 => uint256) public totalAirdroppedByCampaignAndToken;
-  /// @inheritdoc IOngoingCampaigns
-  mapping(bytes32 => uint256) public totalClaimedByCampaignAndToken;
+  mapping(bytes32 => uint256) internal _amountClaimedByCampaignTokenAndClaimee;
+  mapping(bytes32 => uint256) internal _totalAirdroppedByCampaignAndToken;
+  mapping(bytes32 => uint256) internal _totalClaimedByCampaignAndToken;
 
   constructor(address _superAdmin, address[] memory _initialAdmins) AccessControlDefaultAdminRules(3 days, _superAdmin) {
     for (uint256 _i = 0; _i < _initialAdmins.length; ++_i) {
       _grantRole(ADMIN_ROLE, _initialAdmins[_i]);
     }
+  }
+
+  /// @inheritdoc IOngoingCampaigns
+  function amountClaimed(
+    bytes32 _campaign,
+    IERC20 _token,
+    address _claimee
+  ) external view returns (uint256) {
+    return _amountClaimedByCampaignTokenAndClaimee[_getIdOfCampaignTokenAndClaimee(_campaign, _token, _claimee)];
+  }
+
+  /// @inheritdoc IOngoingCampaigns
+  function totalAirdropped(bytes32 _campaign, IERC20 _token) external view returns (uint256) {
+    return _totalAirdroppedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)];
+  }
+
+  /// @inheritdoc IOngoingCampaigns
+  function totalClaimed(bytes32 _campaign, IERC20 _token) external view returns (uint256) {
+    return _totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)];
   }
 
   /// @inheritdoc IOngoingCampaigns
@@ -41,10 +57,10 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       TokenAmount memory _tokenAllocation = _tokensAllocation[_i];
 
       // Build our unique ID for campaign and token address.
-      bytes32 _campaignAndTokenId = getIdOfCampaignAndToken(_campaign, _tokenAllocation.token);
+      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _tokenAllocation.token);
 
       // Move storage var to memory.
-      uint256 _currentTotalAirdropped = totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
+      uint256 _currentTotalAirdropped = _totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
 
       // We can not lower the amount of total claimable on a campaign since that would break
       // the maths for the "ongoing airdrops".
@@ -59,7 +75,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       }
 
       // Update total claimable reward on campaign
-      totalAirdroppedByCampaignAndToken[_campaignAndTokenId] = _tokenAllocation.amount;
+      _totalAirdroppedByCampaignAndToken[_campaignAndTokenId] = _tokenAllocation.amount;
 
       // Refill contract with the ERC20 tokens
       _tokenAllocation.token.safeTransferFrom(msg.sender, address(this), _refillNeeded);
@@ -117,17 +133,17 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       TokenAmount memory _tokenAmount = _tokensAmounts[_i];
 
       // Build our unique ID for campaign, token and claimee address.
-      bytes32 _campaignTokenAndClaimeeId = getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
+      bytes32 _campaignTokenAndClaimeeId = _getIdOfCampaignTokenAndClaimee(_campaign, _tokenAmount.token, _claimee);
 
       // Calculate to claim
-      _claimed[_i] = _tokenAmount.amount - amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId];
+      _claimed[_i] = _tokenAmount.amount - _amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId];
       _tokens[_i] = _tokenAmount.token;
 
       if (_claimed[_i] > 0) {
         // Update the total amount claimed of the token and campaign for the claimee
-        amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId] = _tokenAmount.amount;
+        _amountClaimedByCampaignTokenAndClaimee[_campaignTokenAndClaimeeId] = _tokenAmount.amount;
         // Update the total claimed of a token on a campaign
-        totalClaimedByCampaignAndToken[getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[_i];
+        _totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _tokenAmount.token)] += _claimed[_i];
         // Send the recipient the claimed tokens
         _tokenAmount.token.safeTransfer(_recipient, _claimed[_i]);
       }
@@ -151,14 +167,14 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
       IERC20 _token = _tokens[_i];
 
       // Build our unique ID for campaign and token address.
-      bytes32 _campaignAndTokenId = getIdOfCampaignAndToken(_campaign, _token);
+      bytes32 _campaignAndTokenId = _getIdOfCampaignAndToken(_campaign, _token);
 
       // Understand how much is still available
-      _unclaimed[_i] = totalAirdroppedByCampaignAndToken[_campaignAndTokenId] - totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      _unclaimed[_i] = _totalAirdroppedByCampaignAndToken[_campaignAndTokenId] - _totalClaimedByCampaignAndToken[_campaignAndTokenId];
 
       // We remove unecessary data so we get a little bit of gas back
-      delete totalClaimedByCampaignAndToken[_campaignAndTokenId];
-      delete totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
+      delete _totalClaimedByCampaignAndToken[_campaignAndTokenId];
+      delete _totalAirdroppedByCampaignAndToken[_campaignAndTokenId];
 
       if (_unclaimed[_i] > 0) {
         // Transfer it out to recipient
@@ -169,15 +185,15 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     emit CampaignShutDown(_campaign, _tokens, _unclaimed, _recipient);
   }
 
-  function getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) public pure returns (bytes32) {
+  function _getIdOfCampaignAndToken(bytes32 _campaign, IERC20 _token) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token));
   }
 
-  function getIdOfCampaignTokenAndClaimee(
+  function _getIdOfCampaignTokenAndClaimee(
     bytes32 _campaign,
     IERC20 _token,
     address _claimee
-  ) public pure returns (bytes32) {
+  ) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token, _claimee));
   }
 

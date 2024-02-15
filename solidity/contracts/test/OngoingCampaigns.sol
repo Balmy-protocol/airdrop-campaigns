@@ -35,7 +35,7 @@ contract OngoingCampaignsMock is OngoingCampaigns {
     IERC20 _token,
     uint256 _amount
   ) external {
-    totalAirdroppedByCampaignAndToken[getIdOfCampaignAndToken(_campaign, _token)] = _amount;
+    _totalAirdroppedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)] = _amount;
   }
 
   function setTotalClaimedByCampaignAndToken(
@@ -43,7 +43,7 @@ contract OngoingCampaignsMock is OngoingCampaigns {
     IERC20 _token,
     uint256 _amount
   ) external {
-    totalClaimedByCampaignAndToken[getIdOfCampaignAndToken(_campaign, _token)] = _amount;
+    _totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)] = _amount;
   }
 
   function _claim(
