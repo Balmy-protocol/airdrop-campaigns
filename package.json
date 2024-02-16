@@ -94,7 +94,7 @@
     "hardhat": "2.17.1",
     "hardhat-exposed": "0.3.11",
     "hardhat-gas-reporter": "1.0.9",
-    "husky": "^9.0.11",
+    "husky": "7.0.4",
     "mocha": "10.2.0",
     "prettier": "2.8.7",
     "prettier-plugin-solidity": "^1.3.1",
