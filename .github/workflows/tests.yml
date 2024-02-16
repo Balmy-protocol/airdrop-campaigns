@@ -15,25 +15,26 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Cache node modules
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-node-modules
+      - name: "Install Pnpm"
+        uses: "pnpm/action-setup@v2"
         with:
-          path: "**/node_modules"
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
+          version: "8"
 
-      - name: Install node
-        uses: actions/setup-node@v1
+      - name: "Install Node.js"
+        uses: "actions/setup-node@v3"
         with:
-          node-version: "14.x"
+          cache: "pnpm"
+          node-version: "lts/*"
 
       - name: Install dependencies
-        run: yarn --frozen-lockfile
+        run: pnpm i --frozen-lockfile
 
       - name: Run unit tests
-        run: yarn test:unit
-        env:
-          # Wallet.createRandom() won't work.
-          # Ref.: https://github.com/ethers-io/ethers.js/issues/3082
-          NODE_OPTIONS: --openssl-legacy-provider
+        run: pnpm test:unit
+
+      # - name: Run unit tests
+      #   run: yarn test:unit
+      #   env:
+      #     # Wallet.createRandom() won't work.
+      #     # Ref.: https://github.com/ethers-io/ethers.js/issues/3082
+      #     NODE_OPTIONS: --openssl-legacy-provider
