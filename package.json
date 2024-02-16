@@ -47,7 +47,7 @@
     "docs": "solidity-docgen --solc-module solc-0.8",
     "fork:node": "cross-env FORK=true hardhat node",
     "fork:script": "cross-env FORK=true hardhat run",
-    "postinstall": "husky install && yarn compile",
+    "postinstall": "husky install",
     "lint:check": "cross-env solhint 'solidity/**/*.sol' && cross-env prettier --check './**'",
     "lint:fix": "sort-package-json && cross-env prettier --write './**' && cross-env solhint --fix 'solidity/**/*.sol'",
     "prepare": "husky install",
