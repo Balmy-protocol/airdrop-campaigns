@@ -5,8 +5,9 @@ import {IOngoingCampaigns} from '../interfaces/IOngoingCampaigns.sol';
 import {AccessControlDefaultAdminRules} from '@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol';
 import {SafeERC20, IERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import {MerkleProof} from '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
+import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 
-contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
+contract OngoingCampaigns is AccessControlDefaultAdminRules, ReentrancyGuard, IOngoingCampaigns {
   using SafeERC20 for IERC20;
 
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
@@ -94,7 +95,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     address _claimee,
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
-  ) external {
+  ) external nonReentrant {
     _claim(_campaign, _claimee, _claimee, _tokensAmounts, _proof);
   }
 
@@ -104,7 +105,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     TokenAmount[] calldata _tokensAmounts,
     address _recipient,
     bytes32[] calldata _proof
-  ) external {
+  ) external nonReentrant {
     _claim(_campaign, msg.sender, _recipient, _tokensAmounts, _proof);
   }
 
