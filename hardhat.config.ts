@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import '@nomicfoundation/hardhat-toolbox';
+import '@nomiclabs/hardhat-ethers';
 import { HardhatUserConfig } from 'hardhat/types';
 import 'tsconfig-paths/register';
 
