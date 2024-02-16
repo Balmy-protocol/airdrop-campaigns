@@ -1,6 +1,4 @@
 import 'dotenv/config';
-import '@nomicfoundation/hardhat-toolbox';
-import 'hardhat-deploy';
 import { HardhatUserConfig } from 'hardhat/types';
 import 'tsconfig-paths/register';
 
@@ -19,10 +17,6 @@ const config: HardhatUserConfig = {
     ],
   },
   defaultNetwork: 'hardhat',
-  typechain: {
-    outDir: 'typechained',
-    target: 'ethers-v5',
-  },
   paths: {
     sources: './solidity',
   },
