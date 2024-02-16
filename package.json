@@ -56,7 +56,7 @@
     "test:e2e": "yarn test './test/e2e/**/*.spec.ts'",
     "test:gas": "REPORT_GAS=1 npx hardhat test",
     "test:integration": "yarn test './test/integration/**/*.spec.ts'",
-    "test:unit": "yarn test 'test/unit/**/*.spec.ts'"
+    "test:unit": "npx hardhat compile --no-typechain --show-stack-traces && npx hardhat test"
   },
   "lint-staged": {
     "*.{js,css,md,ts,sol}": "prettier --write",
