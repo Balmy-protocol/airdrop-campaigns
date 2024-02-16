@@ -41,7 +41,7 @@
   ],
   "scripts": {
     "compile": "hardhat compile",
-    "compile:test": "cross-env TEST=true hardhat compile",
+    "compile:test": "cross-env TEST=true hardhat --show-stack-traces --verbose compile",
     "coverage": "hardhat coverage",
     "deploy": "npx hardhat deploy",
     "docs": "solidity-docgen --solc-module solc-0.8",
