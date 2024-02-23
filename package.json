@@ -19,11 +19,7 @@
     {
       "name": "0xged",
       "url": "https://github.com/0xged"
-    },
-    {
-      "name": "TheAustrian1998",
-      "url": "https://github.com/TheAustrian1998"
-    }
+    }    
   ],
   "files": [
     "solidity/contracts",
@@ -53,7 +49,7 @@
     "test:e2e": "yarn test './test/e2e/**/*.spec.ts'",
     "test:gas": "REPORT_GAS=1 npx hardhat test",
     "test:integration": "yarn test './test/integration/**/*.spec.ts'",
-    "test:unit": "npx hardhat compile --no-typechain --show-stack-traces && npx hardhat test"
+    "test:unit": "npx hardhat compile --show-stack-traces && npx hardhat test"
   },
   "lint-staged": {
     "*.{js,css,md,ts,sol}": "prettier --write",
