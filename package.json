@@ -13,10 +13,7 @@
     "marketing",
     "referral"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mean-finance/airdrop-campaigns.git"
-  },
+  "repository": "git+https://github.com/mean-finance/airdrop-campaigns.git",
   "license": "AGPL-3.0-only",
   "contributors": [
     {
@@ -73,31 +70,32 @@
     "merkletreejs": "0.2.32"
   },
   "devDependencies": {
-    "@ethersproject/hash": "5.7.0",
+    "@defi-wonderland/smock": "2.3.5",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.6",
     "@nomicfoundation/hardhat-foundry": "1.0.3",
-    "@nomicfoundation/hardhat-network-helpers": "1.0.8",
-    "@nomicfoundation/hardhat-toolbox": "2.0.2",
-    "@nomiclabs/hardhat-ethers": "2.2.3",
-    "@nomiclabs/hardhat-etherscan": "3.1.7",
-    "@typechain/ethers-v5": "10.2.1",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@nomicfoundation/hardhat-viem": "^1.0.0",
     "@typechain/hardhat": "6.1.6",
-    "@types/chai": "4.3.5",
-    "@types/mocha": "10.0.1",
-    "@types/node": "20.5.6",
-    "chai": "4.3.8",
+    "@types/chai": "^4.2.0",
+    "@types/chai-as-promised": "^7.1.6",
+    "@types/mocha": ">=9.1.0",
+    "@types/node": ">=16.0.0",
+    "chai": "^4.2.0",
     "dotenv": "^16.4.4",
-    "ethers": "5.7.2",
-    "hardhat": "2.17.1",
-    "hardhat-exposed": "0.3.11",
-    "hardhat-gas-reporter": "1.0.9",
+    "hardhat": "^2.14.0",
+    "hardhat-gas-reporter": "^1.0.8",
     "mocha": "10.2.0",
     "prettier": "2.8.7",
     "solhint-community": "3.5.0",
-    "solidity-coverage": "0.8.4",
-    "ts-node": "10.9.1",
+    "solidity-coverage": "^0.8.0",
+    "ts-node": ">=8.0.0",
     "tsconfig-paths": "4.0.0",
     "typechain": "8.3.1",
-    "typescript": "5.2.2"
-  }
+    "typescript": "~5.0.4",
+    "viem": "^1.15.1"
+  },
+  "main": "index.js",
+  "author": "Sam Bugs <sambugs@protonmail.com>"
 }

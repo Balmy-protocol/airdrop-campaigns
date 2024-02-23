@@ -1,24 +1,22 @@
-// import chai, { expect } from 'chai';
-// import { when, then, given } from '@utils/bdd';
-// import { IERC20, IOngoingCampaigns, OngoingCampaignsMock, OngoingCampaignsMock__factory } from '@typechained';
-// import { ethers } from 'hardhat';
-// import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-// import { smock, FakeContract } from '@defi-wonderland/smock';
-// import { takeSnapshot, SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers';
-// import { BigNumber, BigNumberish, constants } from 'ethers';
-// import { randomHex } from 'web3-utils';
-// import { getArgsFromEvent } from '@utils/event-utils';
-// import { behaviours } from '@utils';
-// import { TransactionResponse } from '@ethersproject/providers';
-// import { generateRandomAddress } from '@utils/wallet';
-// import { createMerkleTree } from '@utils/merkle';
-// import MerkleTree from 'merkletreejs';
+import chai, { expect } from 'chai';
+import { when, then, given } from '@utils/bdd';
+import hre from "hardhat";
+import { smock, FakeContract } from '@defi-wonderland/smock';
+import { takeSnapshot, SnapshotRestorer } from '@nomicfoundation/hardhat-network-helpers';
+import { BigNumber, BigNumberish, constants } from 'ethers';
+import { randomHex } from 'web3-utils';
+import { getArgsFromEvent } from '@utils/event-utils';
+import { behaviours } from '@utils';
+import { generateRandomAddress } from '@utils/wallet';
+import { createMerkleTree } from '@utils/merkle';
+import MerkleTree from 'merkletreejs';
+import { WalletClient } from 'viem';
 
-// chai.use(smock.matchers);
+chai.use(smock.matchers);
 
 // describe('OngoingCampaigns', () => {
-//   let user: SignerWithAddress;
-//   let superAdmin: SignerWithAddress, admin: SignerWithAddress;
+//   let user: WalletClient;
+//   let superAdmin: WalletClient, admin: WalletClient;
 //   let ongoingCampaignsFactory: OngoingCampaignsMock__factory;
 //   let ongoingCampaigns: OngoingCampaignsMock;
 //   let superAdminRole: string, adminRole: string;
@@ -27,15 +25,19 @@
 //   const tokens: FakeContract<IERC20>[] = [];
 
 //   before('Setup accounts and contracts', async () => {
-//     [user, superAdmin, admin] = await ethers.getSigners();
-//     ongoingCampaignsFactory = (await ethers.getContractFactory(
-//       'solidity/contracts/test/OngoingCampaigns.sol:OngoingCampaignsMock'
-//     )) as OngoingCampaignsMock__factory;
+//     [user, superAdmin, admin] = await hre.viem.getWalletClients();
+//     // ongoingCampaignsFactory = (await ethers.getContractFactory(
+//     //   'solidity/contracts/test/OngoingCampaigns.sol:OngoingCampaignsMock'
+//     // )) as OngoingCampaignsMock__factory;
 //     for (let i = 0; i < 10; i++) {
 //       tokens.push(await smock.fake('IERC20'));
 //     }
-//     ongoingCampaigns = await ongoingCampaignsFactory.deploy(superAdmin.address, [admin.address]);
-//     [superAdminRole, adminRole] = await Promise.all([ongoingCampaigns.DEFAULT_ADMIN_ROLE(), ongoingCampaigns.ADMIN_ROLE()]);
+//     const ongoingCampaigns = await hre.viem.deployContract(
+//       'OngoingCampaignsMock',
+//       [superAdmin.account!.address, [admin.account!.address]]
+//     );
+
+//     [superAdminRole, adminRole] = await Promise.all([ongoingCampaigns.read.DEFAULT_ADMIN_ROLE(), ongoingCampaigns.read.ADMIN_ROLE()]);
 //     snapshot = await takeSnapshot();
 //   });
 

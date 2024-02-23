@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import '@nomicfoundation/hardhat-toolbox';
-import '@nomiclabs/hardhat-ethers';
-import { HardhatUserConfig } from 'hardhat/types';
+import "@nomicfoundation/hardhat-viem";
+import '@nomicfoundation/hardhat-toolbox-viem';
+import { HardhatUserConfig } from "hardhat/config";
 import 'tsconfig-paths/register';
 
 const config: HardhatUserConfig = {
