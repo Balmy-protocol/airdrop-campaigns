@@ -13,20 +13,13 @@
     "marketing",
     "referral"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mean-finance/airdrop-campaigns.git"
-  },
+  "repository": "git+https://github.com/mean-finance/airdrop-campaigns.git",
   "license": "AGPL-3.0-only",
   "contributors": [
     {
       "name": "0xged",
       "url": "https://github.com/0xged"
-    },
-    {
-      "name": "TheAustrian1998",
-      "url": "https://github.com/TheAustrian1998"
-    }
+    }    
   ],
   "files": [
     "solidity/contracts",
@@ -41,28 +34,26 @@
   ],
   "scripts": {
     "compile": "hardhat compile",
-    "compile:test": "cross-env TEST=true hardhat compile",
+    "compile:test": "hardhat --show-stack-traces --verbose compile",
     "coverage": "hardhat coverage",
     "deploy": "npx hardhat deploy",
     "docs": "solidity-docgen --solc-module solc-0.8",
-    "fork:node": "cross-env FORK=true hardhat node",
-    "fork:script": "cross-env FORK=true hardhat run",
-    "postinstall": "husky install && yarn compile",
-    "lint:check": "cross-env solhint 'solidity/**/*.sol' && cross-env prettier --check './**'",
-    "lint:fix": "sort-package-json && cross-env prettier --write './**' && cross-env solhint --fix 'solidity/**/*.sol'",
-    "prepare": "husky install",
+    "fork:node": "FORK=true hardhat node",
+    "fork:script": "FORK=true hardhat run",
+    "lint:check": "solhint 'solidity/**/*.sol' && prettier --check './**'",
+    "lint:fix": "sort-package-json && prettier --write './**' && solhint --fix 'solidity/**/*.sol'",
     "prepublishOnly": "hardhat clean && hardhat compile && pinst --disable",
     "postpublish": "pinst --enable",
     "release": "standard-version",
-    "test": "yarn compile:test && cross-env TEST=true mocha",
+    "test": "yarn compile:test && mocha",
     "test:e2e": "yarn test './test/e2e/**/*.spec.ts'",
-    "test:gas": "cross-env REPORT_GAS=1 npx hardhat test",
+    "test:gas": "REPORT_GAS=1 npx hardhat test",
     "test:integration": "yarn test './test/integration/**/*.spec.ts'",
-    "test:unit": "yarn test 'test/unit/**/*.spec.ts'"
+    "test:unit": "npx hardhat compile --show-stack-traces && npx hardhat test"
   },
   "lint-staged": {
     "*.{js,css,md,ts,sol}": "prettier --write",
-    "*.sol": "cross-env solhint --fix 'solidity/**/*.sol'",
+    "*.sol": "solhint --fix 'solidity/**/*.sol'",
     "package.json": "sort-package-json"
   },
   "resolutions": {
@@ -75,53 +66,32 @@
     "merkletreejs": "0.2.32"
   },
   "devDependencies": {
-    "@codechecks/client": "0.1.12",
-    "@commitlint/cli": "17.0.3",
-    "@commitlint/config-conventional": "17.0.3",
     "@defi-wonderland/smock": "2.3.5",
-    "@ethersproject/hash": "5.7.0",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.6",
     "@nomicfoundation/hardhat-foundry": "1.0.3",
-    "@nomicfoundation/hardhat-network-helpers": "1.0.8",
-    "@nomicfoundation/hardhat-toolbox": "2.0.2",
-    "@nomiclabs/hardhat-ethers": "2.2.3",
-    "@nomiclabs/hardhat-etherscan": "3.1.7",
-    "@typechain/ethers-v5": "10.2.1",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^2.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@nomicfoundation/hardhat-viem": "^1.0.0",
     "@typechain/hardhat": "6.1.6",
-    "@types/chai": "4.3.5",
-    "@types/chai-as-promised": "7.1.5",
-    "@types/lodash": "4.14.182",
-    "@types/mocha": "10.0.1",
-    "@types/node": "20.5.6",
-    "chai": "4.3.8",
-    "chai-as-promised": "7.1.1",
-    "cross-env": "7.0.3",
-    "dotenv": "16.0.1",
-    "ethers": "5.7.2",
-    "hardhat": "2.17.1",
-    "hardhat-deploy": "0.11.11",
-    "hardhat-exposed": "0.3.11",
-    "hardhat-gas-reporter": "1.0.9",
-    "hardhat-preprocessor": "0.1.4",
-    "husky": "8.0.1",
-    "lint-staged": "13.0.3",
-    "lodash": "4.17.21",
+    "@types/chai": "^4.2.0",
+    "@types/chai-as-promised": "^7.1.6",
+    "@types/mocha": ">=9.1.0",
+    "@types/node": ">=16.0.0",
+    "chai": "^4.2.0",
+    "dotenv": "^16.4.4",
+    "hardhat": "^2.14.0",
+    "hardhat-gas-reporter": "^1.0.8",
     "mocha": "10.2.0",
-    "pinst": "3.0.0",
     "prettier": "2.8.7",
-    "prettier-plugin-solidity": "1.0.0-dev.23",
-    "solc-0.8": "npm:solc@0.8.15",
-    "solhint": "3.3.7",
     "solhint-community": "3.5.0",
-    "solhint-plugin-prettier": "0.0.5",
-    "solhint-plugin-wonderland": "0.0.1",
-    "solidity-coverage": "0.8.4",
-    "solidity-docgen": "0.5.17",
-    "sort-package-json": "1.57.0",
-    "standard-version": "9.5.0",
-    "ts-node": "10.9.1",
+    "solidity-coverage": "^0.8.0",
+    "ts-node": ">=8.0.0",
     "tsconfig-paths": "4.0.0",
     "typechain": "8.3.1",
-    "typescript": "5.2.2"
-  }
+    "typescript": "~5.0.4",
+    "viem": "^1.15.1"
+  },
+  "main": "index.js",
+  "author": "Sam Bugs <sambugs@protonmail.com>"
 }

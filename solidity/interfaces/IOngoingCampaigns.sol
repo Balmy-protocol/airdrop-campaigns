@@ -79,11 +79,7 @@ interface IOngoingCampaigns {
    * @notice Exposes token amount claimed by user on a given campaign
    * @return Amount claimed
    */
-  function amountClaimed(
-    bytes32 campaign,
-    IERC20 token,
-    address claimee
-  ) external view returns (uint256);
+  function amountClaimed(bytes32 campaign, IERC20 token, address claimee) external view returns (uint256);
 
   /**
    * @notice Total sum of all airdropped amounts of a given token and campaign.
@@ -108,11 +104,7 @@ interface IOngoingCampaigns {
    * @param root Campaign's merkle root that will be used to prove user claims
    * @param tokensAllocation Array of sum of all airdropped amounts and token on campaign being.
    */
-  function updateCampaign(
-    bytes32 campaign,
-    bytes32 root,
-    TokenAmount[] calldata tokensAllocation
-  ) external;
+  function updateCampaign(bytes32 campaign, bytes32 root, TokenAmount[] calldata tokensAllocation) external;
 
   /**
    * @notice Claims an airdrop for the corresponding campaign and sends it to the owner of the airdrop
@@ -127,12 +119,7 @@ interface IOngoingCampaigns {
    * @param tokensAmounts Array of sum of all airdropped amounts and token on campaign being claimed.
    * @param proof Merkle proof to check airdrop claim validation
    */
-  function claimAndSendToClaimee(
-    bytes32 campaign,
-    address claimee,
-    TokenAmount[] calldata tokensAmounts,
-    bytes32[] calldata proof
-  ) external;
+  function claimAndSendToClaimee(bytes32 campaign, address claimee, TokenAmount[] calldata tokensAmounts, bytes32[] calldata proof) external;
 
   /**
    * @notice Claims an airdrop for the corresponding tranche and sends it to the owner of the airdrop
@@ -147,12 +134,7 @@ interface IOngoingCampaigns {
    * @param recipient Receiver address of the airdropped tokens
    * @param proof Merkle proof to check airdrop claim validation
    */
-  function claimAndTransfer(
-    bytes32 campaign,
-    TokenAmount[] calldata tokensAmounts,
-    address recipient,
-    bytes32[] calldata proof
-  ) external;
+  function claimAndTransfer(bytes32 campaign, TokenAmount[] calldata tokensAmounts, address recipient, bytes32[] calldata proof) external;
 
   /**
    * @notice Withdraws the unclaimed tokens of a tranche.
@@ -162,9 +144,5 @@ interface IOngoingCampaigns {
    * @param recipient Recipient of unclaimed tranche tokens.
    * @return unclaimed Amount of unclaimed tokens on campaign shutted down.
    */
-  function shutdown(
-    bytes32 campaign,
-    IERC20[] calldata tokens,
-    address recipient
-  ) external returns (uint256[] memory unclaimed);
+  function shutdown(bytes32 campaign, IERC20[] calldata tokens, address recipient) external returns (uint256[] memory unclaimed);
 }

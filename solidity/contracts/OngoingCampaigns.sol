@@ -5,8 +5,9 @@ import {IOngoingCampaigns} from '../interfaces/IOngoingCampaigns.sol';
 import {AccessControlDefaultAdminRules} from '@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol';
 import {SafeERC20, IERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import {MerkleProof} from '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
+import {ReentrancyGuard} from '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 
-contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
+contract OngoingCampaigns is AccessControlDefaultAdminRules, ReentrancyGuard, IOngoingCampaigns {
   using SafeERC20 for IERC20;
 
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
@@ -24,11 +25,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
   }
 
   /// @inheritdoc IOngoingCampaigns
-  function amountClaimed(
-    bytes32 _campaign,
-    IERC20 _token,
-    address _claimee
-  ) external view returns (uint256) {
+  function amountClaimed(bytes32 _campaign, IERC20 _token, address _claimee) external view returns (uint256) {
     return _amountClaimedByCampaignTokenAndClaimee[_getIdOfCampaignTokenAndClaimee(_campaign, _token, _claimee)];
   }
 
@@ -43,11 +40,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
   }
 
   /// @inheritdoc IOngoingCampaigns
-  function updateCampaign(
-    bytes32 _campaign,
-    bytes32 _root,
-    TokenAmount[] calldata _tokensAllocation
-  ) external onlyRole(ADMIN_ROLE) {
+  function updateCampaign(bytes32 _campaign, bytes32 _root, TokenAmount[] calldata _tokensAllocation) external onlyRole(ADMIN_ROLE) {
     if (_campaign == bytes32(0)) revert InvalidCampaign();
     if (_root == bytes32(0)) revert InvalidMerkleRoot();
     if (_tokensAllocation.length == 0) revert InvalidTokenAmount();
@@ -94,7 +87,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     address _claimee,
     TokenAmount[] calldata _tokensAmounts,
     bytes32[] calldata _proof
-  ) external {
+  ) external nonReentrant {
     _claim(_campaign, _claimee, _claimee, _tokensAmounts, _proof);
   }
 
@@ -104,7 +97,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     TokenAmount[] calldata _tokensAmounts,
     address _recipient,
     bytes32[] calldata _proof
-  ) external {
+  ) external nonReentrant {
     _claim(_campaign, msg.sender, _recipient, _tokensAmounts, _proof);
   }
 
@@ -189,11 +182,7 @@ contract OngoingCampaigns is AccessControlDefaultAdminRules, IOngoingCampaigns {
     return keccak256(abi.encodePacked(_campaign, _token));
   }
 
-  function _getIdOfCampaignTokenAndClaimee(
-    bytes32 _campaign,
-    IERC20 _token,
-    address _claimee
-  ) internal pure returns (bytes32) {
+  function _getIdOfCampaignTokenAndClaimee(bytes32 _campaign, IERC20 _token, address _claimee) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_campaign, _token, _claimee));
   }
 

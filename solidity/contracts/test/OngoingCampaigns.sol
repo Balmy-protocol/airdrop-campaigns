@@ -30,19 +30,11 @@ contract OngoingCampaignsMock is OngoingCampaigns {
     }
   }
 
-  function setTotalAirdroppedByCampaignAndToken(
-    bytes32 _campaign,
-    IERC20 _token,
-    uint256 _amount
-  ) external {
+  function setTotalAirdroppedByCampaignAndToken(bytes32 _campaign, IERC20 _token, uint256 _amount) external {
     _totalAirdroppedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)] = _amount;
   }
 
-  function setTotalClaimedByCampaignAndToken(
-    bytes32 _campaign,
-    IERC20 _token,
-    uint256 _amount
-  ) external {
+  function setTotalClaimedByCampaignAndToken(bytes32 _campaign, IERC20 _token, uint256 _amount) external {
     _totalClaimedByCampaignAndToken[_getIdOfCampaignAndToken(_campaign, _token)] = _amount;
   }
 
