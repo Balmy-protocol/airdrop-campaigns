@@ -1,12 +1,13 @@
 {
-  "name": "@mean-finance/airdrop-campaigns",
+  "name": "@balmy/airdrop-campaigns",
   "version": "0.0.0",
-  "description": "Mean Finance's airdrop campaigns smart contracts and scripts",
+  "description": "Balmy's airdrop campaigns smart contracts and scripts",
   "keywords": [
     "ethereum",
     "smart",
     "contracts",
     "mean finance",
+    "balmy",
     "airdrop",
     "solidity",
     "campaign",
@@ -15,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mean-finance/airdrop-campaigns.git"
+    "url": "git+https://github.com/Balmy-protocol/airdrop-campaigns.git"
   },
   "license": "AGPL-3.0-only",
   "contributors": [
