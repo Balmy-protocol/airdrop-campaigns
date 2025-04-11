@@ -79,7 +79,7 @@
     "@codechecks/client": "0.1.12",
     "@commitlint/cli": "17.0.3",
     "@commitlint/config-conventional": "17.0.3",
-    "@defi-wonderland/smock": "2.3.5",
+    "@defi-wonderland/smock": "2.4.0",
     "@ethersproject/hash": "5.7.0",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.6",
     "@nomicfoundation/hardhat-foundry": "1.1.3",
